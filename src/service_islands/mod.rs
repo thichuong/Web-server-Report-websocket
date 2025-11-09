@@ -107,9 +107,9 @@ impl ServiceIslands {
             .await?;
 
         // Store in cache for main service to read
-        use multi_tier_cache::CacheStrategy;
         if let Err(e) = self.cache_system.cache_manager()
-            .set_with_strategy("latest_market_data", data.clone(), CacheStrategy::RealTime)
+            .set_with_strategy("latest_market_data", data.clone(),
+                layer1_infrastructure::cache_system_island::cache_manager::realtime_strategy())
             .await
         {
             eprintln!("⚠️ Failed to cache market data: {}", e);

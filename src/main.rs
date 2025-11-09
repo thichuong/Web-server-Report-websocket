@@ -178,7 +178,7 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
 
         info!("📊 Fetching market data...");
 
-        match service_islands.fetch_and_publish_market_data(true).await {
+        match service_islands.fetch_and_publish_market_data(false).await {
             Ok(data) => {
                 info!("✅ Market data fetched successfully");
 
