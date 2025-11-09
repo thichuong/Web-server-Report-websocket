@@ -1,0 +1,97 @@
+[package]
+name = "web-server-report-websocket"
+version = "0.1.0"
+edition = "2021"
+default-run = "web-server-report-websocket"
+license = "Apache-2.0"
+authors = ["thichuong"]
+
+[lib]
+name = "web_server_report_websocket"
+path = "src/lib.rs"
+
+[[bin]]
+name = "web-server-report-websocket"
+path = "src/main.rs"
+
+# Optimized development profile - faster compile + good performance
+[profile.dev]
+opt-level = 1              # Some optimization for better runtime performance
+debug = true               # Keep debug info for development
+lto = false               # No LTO for faster compile time
+codegen-units = 16        # Parallel compilation
+panic = "unwind"          # Allow debugging panics
+overflow-checks = true    # Keep safety checks in dev
+
+[profile.release]
+opt-level = 3              # Maximum optimization
+lto = "fat"               # Full Link Time Optimization
+codegen-units = 1         # Single codegen unit for better optimization
+panic = "abort"           # Abort on panic (smaller binary, faster)
+strip = true             # Strip debug symbols
+overflow-checks = false   # Disable overflow checks in release
+
+[dependencies]
+# Web framework and WebSocket
+axum = { version = "0.6", features = ["ws"] }
+tokio = { version = "1.28", features = ["full", "sync"] }
+tower-http = { version = "0.4", features = ["cors"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Environment and configuration
+dotenvy = "0.15"
+
+# Time and dates
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling
+anyhow = "1.0"
+
+# Redis dependencies
+redis = { version = "0.32", features = ["tokio-comp", "connection-manager"] }
+
+# HTTP client for external APIs
+reqwest = { version = "0.11", features = ["json"] }
+
+# Concurrency and parallelism
+rayon = "1.8"          # Data parallelism
+dashmap = "5.5"        # Thread-safe HashMap
+num_cpus = "1.16"      # Detect CPU cores
+
+# Cache dependencies - Multi-tier cache system
+multi-tier-cache = { path = "../multi-tier-cache" }
+moka = { version = "0.12", features = ["future"] }  # L1 In-memory cache
+bb8-redis = "0.15"     # Redis connection pool
+
+# Constraint problematic dependencies
+base64ct = "=1.6.0"    # Pin to avoid edition2024 requirement
+backon = "=1.5.0"      # Pin to 1.5.0 to avoid edition2024 requirement
+futures = "0.3"        # Async utilities
+
+# Performance optimization
+lazy_static = "1.4"    # Static initialization
+threadpool = "1.8"     # Dedicated thread pool
+parking_lot = "0.12"   # Fast synchronization primitives
+ahash = "0.8"         # Faster hash function
+smallvec = "1.11"     # Stack-allocated vectors
+rand = "0.9.2"
+
+# Compression
+flate2 = "1.0"        # Gzip compression
+
+# Text processing
+regex = "1.10"        # Regular expressions
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# gRPC dependencies (optional, for future use)
+tonic = "0.10"        # gRPC framework
+prost = "0.12"        # Protocol Buffers
+
+[build-dependencies]
+tonic-build = "0.10"  # Build script for generating gRPC code
