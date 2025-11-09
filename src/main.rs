@@ -93,7 +93,6 @@ async fn websocket_handler(
 /// Handle individual WebSocket connection
 async fn handle_websocket(mut socket: WebSocket, service_islands: Arc<ServiceIslands>) {
     use std::sync::atomic::Ordering;
-    use futures::StreamExt;
 
     // Increment connection counter
     service_islands.active_ws_connections.fetch_add(1, Ordering::SeqCst);
@@ -179,7 +178,7 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
 
         info!("📊 Fetching market data...");
 
-        match service_islands.fetch_and_publish_market_data(false).await {
+        match service_islands.fetch_and_publish_market_data(true).await {
             Ok(data) => {
                 info!("✅ Market data fetched successfully");
 

@@ -49,8 +49,8 @@ impl WebSocketServiceIsland {
     /// 
     /// Creates all components and establishes communication channels with Layer 2 and cache optimization.
     pub async fn with_external_apis_and_cache(
-        external_apis: Arc<ExternalApisIsland>,
-        cache_system: Arc<crate::service_islands::layer1_infrastructure::cache_system_island::CacheSystemIsland>
+        _external_apis: Arc<ExternalApisIsland>,
+        _cache_system: Arc<crate::service_islands::layer1_infrastructure::cache_system_island::CacheSystemIsland>
     ) -> Result<Self> {
         println!("🔧 Initializing WebSocket Service Island with External APIs and Cache...");
 
@@ -86,7 +86,7 @@ impl WebSocketServiceIsland {
     #[allow(dead_code)]
     pub async fn with_grpc_client_and_cache(
         _layer2_grpc_client: Arc<String>, // Placeholder - not used
-        cache_system: Arc<crate::service_islands::layer1_infrastructure::cache_system_island::CacheSystemIsland>
+        _cache_system: Arc<crate::service_islands::layer1_infrastructure::cache_system_island::CacheSystemIsland>
     ) -> Result<Self> {
         println!("🔧 Initializing WebSocket Service Island (websocket service doesn't use gRPC)...");
 
@@ -146,17 +146,7 @@ impl WebSocketServiceIsland {
             Err(anyhow::anyhow!("WebSocket Service Island - Some components unhealthy"))
         }
     }
-    
-    /// Get broadcast transmitter
-    /// 
-    /// Returns the broadcast transmitter for sending real-time updates.
-    /// 
-    /// Note: broadcast::Sender is designed for cheap cloning (~5-10ns).
-    /// Internally uses Arc, so cloning only increments a reference counter.
-    pub fn get_broadcast_tx(&self) -> broadcast::Sender<String> {
-        self.broadcast_tx.clone() // Required: cannot return reference due to lifetime constraints
-    }
-    
+
     /// Fetch market data (DEPRECATED - now handled by top-level ServiceIslands)
     ///
     /// This method is no longer used. Market data fetching is now done by
@@ -164,67 +154,5 @@ impl WebSocketServiceIsland {
     #[allow(dead_code)]
     pub async fn fetch_market_data(&self, _force_realtime_refresh: bool) -> Result<serde_json::Value> {
         Err(anyhow::anyhow!("fetch_market_data is deprecated - use ServiceIslands.fetch_and_publish_market_data() instead"))
-    }
-
-    /// Start streaming with Service Islands access
-    /// 
-    /// This enables the market data streamer to use the same Layer 5 → Layer 3 → Layer 2 flow
-    /// as HTTP API and WebSocket initial messages, ensuring unified data sources.
-    pub async fn start_streaming_with_service_islands(&self, service_islands: Arc<crate::service_islands::ServiceIslands>) -> Result<()> {
-        println!("🌊 Starting WebSocket streaming with unified Layer 5 access...");
-        
-        // Configure market data streamer with ServiceIslands access
-        let updated_streamer = Arc::new(
-            MarketDataStreamer::new()
-                .with_service_islands(service_islands)
-        );
-        
-        // Replace the existing streamer (this is a design pattern for runtime updates)
-        // In a production system, you might want to handle this more gracefully
-        // Note: Clone broadcast_tx to pass ownership to async task
-        updated_streamer.start_streaming(self.broadcast_tx.clone()).await?;
-        
-        Ok(())
-    }
-
-    /// Start Redis Streams consumer for real-time WebSocket broadcasting
-    /// 
-    /// Phase 3: This method creates a background consumer that listens to Redis Streams
-    /// and broadcasts updates to all WebSocket clients in real-time.
-    pub async fn start_stream_consumer(&self, cache_system: Arc<crate::service_islands::layer1_infrastructure::cache_system_island::CacheSystemIsland>) -> Result<()> {
-        println!("🔄 Starting background tasks for WebSocket broadcasting...");
-        
-        // Clone Arc pointers to move into spawned task (tokio::spawn requires 'static lifetime)
-        // These are cheap operations (~5-10ns each) - only increment reference counters
-        let broadcast_tx = self.broadcast_tx.clone();
-        let cache_system_clone = Arc::clone(&cache_system);
-        // Note: Stream manager removed in new cache system - using simple cache-based updates
-        
-        // Spawn background task for periodic cache checks
-        tokio::spawn(async move {
-            println!("📡 Cache → WebSocket consumer started (polling mode)");
-            
-            // Periodic polling instead of stream consumption 
-            let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
-            
-            loop {
-                interval.tick().await;
-                
-                // Check cache for new market data periodically (with Cache Stampede protection)
-                // This is a simplified approach compared to Redis Streams
-                if let Ok(Some(market_data)) = cache_system_clone.cache_manager().get("latest_market_data").await {
-                    let message = serde_json::to_string(&market_data).unwrap_or_else(|_| "{}".to_string());
-                    if let Err(e) = broadcast_tx.send(message) {
-                        eprintln!("⚠️ Failed to broadcast market data: {}", e);
-                        break;
-                    }
-                }
-                
-                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-            }
-            
-            println!("📡 Cache → WebSocket consumer stopped");
-        });
-        Ok(())
     }
 }

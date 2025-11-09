@@ -12,7 +12,6 @@ use anyhow::Result;
 pub use multi_tier_cache::{
     CacheSystem as LibraryCacheSystem,
     CacheManager,
-    CacheStrategy,
     L1Cache,
     L2Cache,
 };
