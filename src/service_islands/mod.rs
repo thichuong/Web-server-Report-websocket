@@ -143,7 +143,15 @@ impl ServiceIslands {
 
     /// Broadcast data to all connected WebSocket clients
     pub async fn broadcast_to_websocket_clients(&self, data: serde_json::Value) -> Result<(), anyhow::Error> {
-        let data_str = serde_json::to_string(&data)?;
+        // Wrap data in WebSocket message format with type field
+        let ws_message = serde_json::json!({
+            "type": "dashboard_update",
+            "data": data,
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+            "source": "external_apis"
+        });
+
+        let data_str = serde_json::to_string(&ws_message)?;
         self.websocket_service.broadcast_service.broadcast(data_str).await;
         Ok(())
     }
