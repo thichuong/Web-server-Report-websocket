@@ -1,0 +1,60 @@
+# Railway Ignore File
+# Files and directories to exclude from Railway deployment
+
+# Development environment files
+.env
+.env.test
+.env.local
+.env.development
+.env.*.local
+
+# Build artifacts (debug builds)
+target/debug/
+target/release/build/
+target/release/deps/
+target/release/examples/
+target/release/incremental/
+*.pdb
+*.d
+
+# IDE and editor files
+.vscode/
+.idea/
+.vs/
+*.swp
+*.swo
+*.swn
+*~
+.DS_Store
+
+# Test files
+tests/
+benches/
+examples/
+
+# Documentation (keep README.md)
+docs/
+*.md
+!README.md
+!DEPLOYMENT_GUIDE.md
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Rust
+**/*.rs.bk
+Cargo.lock.bak
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

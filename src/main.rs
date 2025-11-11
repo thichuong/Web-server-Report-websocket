@@ -66,10 +66,22 @@ async fn main() -> Result<(), anyhow::Error> {
     info!("📡 WebSocket endpoint: ws://{}/ws", addr);
 
     // Run server with graceful shutdown
-    axum::Server::bind(&addr)
+    let server = axum::Server::bind(&addr)
         .serve(app.into_make_service())
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+        .with_graceful_shutdown(shutdown_signal());
+
+    // Wait for server to finish
+    server.await?;
+
+    // Gracefully release leadership on shutdown
+    info!("🔓 Releasing leadership before shutdown...");
+    if let Err(e) = service_islands.leader_election.release_leadership().await {
+        warn!("⚠️ Failed to release leadership: {}", e);
+    } else {
+        info!("✅ Leadership released successfully");
+    }
+
+    info!("👋 WebSocket service shutdown complete");
 
     Ok(())
 }
@@ -160,14 +172,21 @@ async fn health_handler(
 }
 
 /// Background task to fetch market data periodically
+///
+/// With leader election enabled:
+/// - Only the LEADER instance fetches from external APIs
+/// - Follower instances read from Redis cache
+/// - This reduces API calls and prevents rate limiting
 async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
-    info!("🔄 Starting periodic market data fetcher...");
+    use std::sync::atomic::Ordering;
 
-    // Read interval from environment variable (default: 10 seconds)
+    info!("🔄 Starting periodic market data fetcher with leader election...");
+
+    // Read interval from environment variable (default: 5 seconds for real-time updates)
     let fetch_interval = env::var("FETCH_INTERVAL_SECONDS")
-        .unwrap_or_else(|_| "10".to_string())
+        .unwrap_or_else(|_| "5".to_string())
         .parse::<u64>()
-        .unwrap_or(10);
+        .unwrap_or(5);
 
     info!("⏱️ Market data fetch interval: {} seconds", fetch_interval);
 
@@ -176,22 +195,55 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
     loop {
         interval_timer.tick().await;
 
-        info!("📊 Fetching market data...");
+        // Check if this instance is the leader
+        let is_leader = service_islands.is_leader.load(Ordering::Relaxed);
 
-        match service_islands.fetch_and_publish_market_data(false).await {
-            Ok(data) => {
-                info!("✅ Market data fetched successfully");
+        if is_leader {
+            // LEADER MODE: Fetch from API and cache
+            info!("🎖️ [LEADER] Fetching market data from APIs...");
 
-                // Broadcast to all WebSocket clients
-                if let Err(e) = service_islands.broadcast_to_websocket_clients(data).await {
-                    error!("❌ Failed to broadcast to WebSocket clients: {}", e);
-                } else {
-                    info!("📡 Broadcasted to {} WebSocket clients",
-                          service_islands.active_connections());
+            match service_islands.fetch_and_publish_market_data(true).await {
+                Ok(data) => {
+                    info!("✅ [LEADER] Market data fetched successfully from APIs");
+
+                    // Broadcast to all WebSocket clients
+                    if let Err(e) = service_islands.broadcast_to_websocket_clients(data).await {
+                        error!("❌ [LEADER] Failed to broadcast to WebSocket clients: {}", e);
+                    } else {
+                        info!("📡 [LEADER] Broadcasted to {} WebSocket clients",
+                              service_islands.active_connections());
+                    }
+                }
+                Err(e) => {
+                    error!("❌ [LEADER] Failed to fetch market data: {}", e);
                 }
             }
-            Err(e) => {
-                error!("❌ Failed to fetch market data: {}", e);
+        } else {
+            // FOLLOWER MODE: Read from cache only
+            info!("👥 [FOLLOWER] Reading market data from cache...");
+
+            // Try to get latest data from cache
+            match service_islands.cache_system.cache_manager()
+                .get("latest_market_data")
+                .await
+            {
+                Ok(Some(data)) => {
+                    info!("✅ [FOLLOWER] Market data loaded from cache");
+
+                    // Broadcast to all WebSocket clients
+                    if let Err(e) = service_islands.broadcast_to_websocket_clients(data).await {
+                        error!("❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}", e);
+                    } else {
+                        info!("📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients",
+                              service_islands.active_connections());
+                    }
+                }
+                Ok(None) => {
+                    warn!("⚠️ [FOLLOWER] No cached data available yet (leader may still be fetching)");
+                }
+                Err(e) => {
+                    error!("❌ [FOLLOWER] Failed to read from cache: {}", e);
+                }
             }
         }
     }

@@ -8,9 +8,9 @@ pub mod layer2_external_services;
 pub mod layer3_communication;
 
 use std::sync::Arc;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 
-use layer1_infrastructure::CacheSystemIsland;
+use layer1_infrastructure::{CacheSystemIsland, LeaderElectionService};
 use layer2_external_services::ExternalApisIsland;
 use layer3_communication::WebSocketServiceIsland;
 
@@ -30,6 +30,10 @@ pub struct ServiceIslands {
     // Layer 3: Communication Islands
     pub websocket_service: Arc<WebSocketServiceIsland>,
 
+    // Distributed Coordination: Leader Election
+    pub leader_election: Arc<LeaderElectionService>,
+    pub is_leader: Arc<AtomicBool>,
+
     // WebSocket connection tracking
     pub active_ws_connections: Arc<AtomicUsize>,
 }
@@ -46,6 +50,32 @@ impl ServiceIslands {
         println!("🏗️ Initializing Layer 1: Cache System Island...");
         let cache_system = Arc::new(CacheSystemIsland::new().await?);
         println!("✅ Cache System Island initialized!");
+
+        // Initialize Leader Election Service
+        println!("🎖️ Initializing Leader Election Service...");
+        let redis_url = std::env::var("REDIS_URL")
+            .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+
+        // Generate unique node ID from Railway or UUID
+        let node_id = std::env::var("RAILWAY_REPLICA_ID")
+            .or_else(|_| std::env::var("RAILWAY_INSTANCE_ID"))
+            .unwrap_or_else(|_| format!("ws-{}", uuid::Uuid::new_v4()));
+
+        let leader_election = Arc::new(
+            LeaderElectionService::new(&redis_url, node_id).await?
+        );
+        let is_leader = Arc::new(AtomicBool::new(false));
+
+        // Spawn background leadership monitoring task
+        tokio::spawn({
+            let leader_election = leader_election.clone();
+            let is_leader = is_leader.clone();
+            async move {
+                leader_election.monitor_leadership(is_leader).await;
+            }
+        });
+
+        println!("✅ Leader Election Service initialized!");
 
         // Initialize Layer 2: External Services (depends on Layer 1 - Cache System)
         println!("🌐 Initializing Layer 2: External APIs Island with Cache...");
@@ -87,7 +117,7 @@ impl ServiceIslands {
 
         println!("✅ WebSocket Service Islands Architecture initialized!");
         println!("📊 Architecture Status:");
-        println!("  🏗️ Layer 1 - Infrastructure: Cache System");
+        println!("  🏗️ Layer 1 - Infrastructure: Cache System, Leader Election");
         println!("  🌐 Layer 2 - External Services: External APIs");
         println!("  📡 Layer 3 - Communication: WebSocket");
 
@@ -95,6 +125,8 @@ impl ServiceIslands {
             cache_system,
             external_apis,
             websocket_service,
+            leader_election,
+            is_leader,
             active_ws_connections: Arc::new(AtomicUsize::new(0)),
         })
     }

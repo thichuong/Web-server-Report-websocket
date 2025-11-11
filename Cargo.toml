@@ -51,7 +51,7 @@ chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1.0"
 
 # Redis dependencies
-redis = { version = "0.32", features = ["tokio-comp", "connection-manager"] }
+redis = { version = "0.32", features = ["tokio-comp", "connection-manager", "script"] }
 
 # HTTP client for external APIs
 reqwest = { version = "0.11", features = ["json"] }
@@ -70,6 +70,9 @@ bb8-redis = "0.15"     # Redis connection pool
 base64ct = "=1.6.0"    # Pin to avoid edition2024 requirement
 backon = "=1.5.0"      # Pin to 1.5.0 to avoid edition2024 requirement
 futures = "0.3"        # Async utilities
+
+# UUID generation for instance IDs
+uuid = { version = "1.0", features = ["v4", "serde"] }
 
 # Performance optimization
 lazy_static = "1.4"    # Static initialization

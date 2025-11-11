@@ -1,0 +1,24 @@
+[build]
+builder = "nixpacks"
+buildCommand = "cargo build --release"
+
+[deploy]
+# Number of replicas (instances) for leader election
+# 1 leader + 2 followers = 3 total
+numReplicas = 3
+
+# Start command
+startCommand = "./target/release/web-server-report-websocket"
+
+# Health check configuration
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+
+# Restart policy - automatically restart on failure
+restartPolicyType = "on-failure"
+restartPolicyMaxRetries = 10
+
+[service]
+# Railway will assign PORT dynamically
+# This is the internal port the app listens on
+# Use 0.0.0.0:$PORT in your app

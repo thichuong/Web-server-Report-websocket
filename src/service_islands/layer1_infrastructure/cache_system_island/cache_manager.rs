@@ -12,5 +12,5 @@ pub use multi_tier_cache::{CacheManager, CacheStrategy, CacheManagerStats};
 /// Use this when you specifically want a 2s realtime TTL instead of
 /// the library's `CacheStrategy::RealTime` default.
 pub fn realtime_strategy() -> CacheStrategy {
-	CacheStrategy::Custom(std::time::Duration::from_secs(2))
+	CacheStrategy::Custom(std::time::Duration::from_secs(5))
 }
