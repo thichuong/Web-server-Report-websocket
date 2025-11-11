@@ -1,22 +1,6 @@
 # Nixpacks configuration for Rust build on Railway
+# Nixpacks auto-detects Rust projects, this file only adds extra dependencies
 
 [phases.setup]
-# System packages required for building Rust with gRPC/Protobuf
-nixPkgs = [
-  "rust",           # Rust compiler and cargo
-  "openssl",        # Required for HTTPS/TLS
-  "pkg-config",     # Build configuration
-  "protobuf"        # Protocol Buffers for gRPC
-]
-
-[phases.build]
-# Build command - release mode for production
-cmds = ["cargo build --release --locked"]
-
-[start]
-# Start the compiled binary
-cmd = "./target/release/web-server-report-websocket"
-
-[variables]
-# Rust build optimizations
-CARGO_NET_GIT_FETCH_WITH_CLI = "true"
+# Additional system packages (Nixpacks already includes Rust)
+nixPkgs = ["openssl", "pkg-config", "protobuf"]
