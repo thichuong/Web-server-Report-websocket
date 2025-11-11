@@ -2,10 +2,6 @@
 builder = "nixpacks"
 
 [deploy]
-# Number of replicas (instances) for leader election
-# 1 leader + 2 followers = 3 total
-numReplicas = 3
-
 # Start command
 startCommand = "./target/release/web-server-report-websocket"
 
