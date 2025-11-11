@@ -1,6 +1,0 @@
-# Nixpacks configuration for Rust build on Railway
-# Nixpacks auto-detects Rust projects, this file only adds extra dependencies
-
-[phases.setup]
-# Additional system packages (Nixpacks already includes Rust)
-nixPkgs = ["openssl", "pkg-config", "protobuf"]

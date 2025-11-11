@@ -1,10 +1,4 @@
-[build]
-builder = "nixpacks"
-
 [deploy]
-# Start command
-startCommand = "./target/release/web-server-report-websocket"
-
 # Health check configuration
 healthcheckPath = "/health"
 healthcheckTimeout = 100
