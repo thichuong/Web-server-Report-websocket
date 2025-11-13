@@ -190,24 +190,57 @@ impl ServiceIslands {
 
     /// Perform health check on all Service Islands
     pub async fn health_check(&self) -> bool {
+        let (is_healthy, _) = self.health_check_detailed().await;
+        is_healthy
+    }
+
+    /// Detailed health check that returns status and details
+    /// Core services (cache, websocket) must be healthy
+    /// External APIs being down won't fail the health check (degraded mode)
+    pub async fn health_check_detailed(&self) -> (bool, serde_json::Value) {
+        use tracing::warn;
+
         println!("🔍 Performing WebSocket Service Islands health check...");
 
         let cache_system_healthy = self.cache_system.health_check().await;
         let external_apis_healthy = self.external_apis.health_check().await.unwrap_or(false);
         let websocket_service_healthy = self.websocket_service.health_check().await.is_ok();
 
-        let all_healthy = cache_system_healthy && external_apis_healthy && websocket_service_healthy;
+        // Core services: Cache and WebSocket MUST be healthy
+        // External APIs can be degraded without failing health check
+        let core_healthy = cache_system_healthy && websocket_service_healthy;
 
-        if all_healthy {
-            println!("✅ All WebSocket Service Islands are healthy!");
+        let status = if core_healthy && external_apis_healthy {
+            "healthy"
+        } else if core_healthy {
+            "degraded" // Core services OK, but external APIs down
         } else {
-            println!("❌ Some WebSocket Service Islands are unhealthy!");
+            "unhealthy"
+        };
+
+        if core_healthy && external_apis_healthy {
+            println!("✅ All WebSocket Service Islands are healthy!");
+        } else if core_healthy {
+            println!("⚠️ Core services healthy, but External APIs are degraded");
+            println!("   Cache System Island: {}", if cache_system_healthy { "✅" } else { "❌" });
+            println!("   External APIs Island: {}", if external_apis_healthy { "✅" } else { "⚠️ degraded" });
+            println!("   WebSocket Service Island: {}", if websocket_service_healthy { "✅" } else { "❌" });
+        } else {
+            println!("❌ Core WebSocket Service Islands are unhealthy!");
             println!("   Cache System Island: {}", if cache_system_healthy { "✅" } else { "❌" });
             println!("   External APIs Island: {}", if external_apis_healthy { "✅" } else { "❌" });
             println!("   WebSocket Service Island: {}", if websocket_service_healthy { "✅" } else { "❌" });
         }
 
-        all_healthy
+        let details = serde_json::json!({
+            "cache_system": cache_system_healthy,
+            "external_apis": external_apis_healthy,
+            "websocket_service": websocket_service_healthy,
+            "status": status,
+        });
+
+        // Return healthy if core services are healthy (even if external APIs are down)
+        (core_healthy, details)
     }
 
     /// Get number of active WebSocket connections

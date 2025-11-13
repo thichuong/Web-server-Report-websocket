@@ -36,10 +36,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Perform initial health check
     info!("🔍 Performing initial health check...");
-    if service_islands.health_check().await {
+    let (is_healthy, health_details) = service_islands.health_check_detailed().await;
+    if is_healthy {
         info!("✅ Service Islands Architecture is healthy!");
     } else {
         warn!("⚠️ Some Service Islands may have issues - continuing with startup...");
+        warn!("Health details: {:?}", health_details);
     }
 
     // Spawn background task for periodic market data fetching
@@ -150,12 +152,15 @@ async fn handle_websocket(mut socket: WebSocket, service_islands: Arc<ServiceIsl
 }
 
 /// Health check endpoint
+/// Returns OK (200) if core services are healthy (cache, websocket)
+/// External APIs being down won't fail the health check
 async fn health_handler(
     State(service_islands): State<Arc<ServiceIslands>>,
 ) -> impl IntoResponse {
-    let healthy = service_islands.health_check().await;
-    let status = if healthy { "healthy" } else { "unhealthy" };
-    let status_code = if healthy {
+    let (is_healthy, health_details) = service_islands.health_check_detailed().await;
+
+    let status = if is_healthy { "healthy" } else { "unhealthy" };
+    let status_code = if is_healthy {
         axum::http::StatusCode::OK
     } else {
         axum::http::StatusCode::SERVICE_UNAVAILABLE
@@ -167,6 +172,7 @@ async fn health_handler(
             "status": status,
             "service": "web-server-report-websocket",
             "active_connections": service_islands.active_connections(),
+            "details": health_details,
         }))
     )
 }
