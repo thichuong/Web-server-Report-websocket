@@ -20,7 +20,8 @@ impl MessageHandler {
     
     /// Health check for message handler
     pub async fn health_check(&self) -> bool {
-        // Verify message handling is working
-        true // Will implement actual health check
+        // Stateless component - always healthy
+        // TODO: Add actual validation when state is added
+        true
     }
 }

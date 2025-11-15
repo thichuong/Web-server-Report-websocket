@@ -6,9 +6,9 @@ use reqwest::Client;
 use anyhow::Result;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
-use tokio::time::Duration;
 use crate::service_islands::layer2_external_services::external_apis_island::market_data_api::MarketDataApi;
 use crate::service_islands::layer1_infrastructure::CacheSystemIsland;
+use crate::performance::OPTIMIZED_HTTP_CLIENT;
 
 
 /// API Aggregator
@@ -45,18 +45,8 @@ impl ApiAggregator {
     ) -> Result<Self> {
         println!("📊 Initializing API Aggregator...");
 
-        // Use optimized HTTP client from performance module if available
-        let client = if let Ok(perf_client) = std::panic::catch_unwind(|| {
-            Client::builder().pool_max_idle_per_host(10).timeout(std::time::Duration::from_secs(30)).connect_timeout(std::time::Duration::from_secs(10)).build().unwrap_or_else(|_| Client::new())
-        }) {
-            perf_client
-        } else {
-            // Fallback client
-            Client::builder()
-                .timeout(Duration::from_secs(30))
-                .build()
-                .expect("Failed to create HTTP client")
-        };
+        // Use the optimized HTTP client from the performance module
+        let client = OPTIMIZED_HTTP_CLIENT.clone();
 
         // Create market API instance with async initialization
         let market_api = Arc::new(MarketDataApi::with_all_keys(taapi_secret, cmc_api_key, finnhub_api_key).await?);

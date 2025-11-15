@@ -7,10 +7,10 @@
 #[allow(unused_imports)]
 pub use multi_tier_cache::{CacheManager, CacheStrategy, CacheManagerStats};
 
-/// Helper: return a realtime cache strategy with a 2 second TTL.
+/// Helper: return a realtime cache strategy with a 5 second TTL.
 ///
-/// Use this when you specifically want a 2s realtime TTL instead of
-/// the library's `CacheStrategy::RealTime` default.
+/// Use this for real-time market data that updates frequently.
+/// The 5-second TTL balances freshness with API rate limiting.
 pub fn realtime_strategy() -> CacheStrategy {
 	CacheStrategy::Custom(std::time::Duration::from_secs(5))
 }

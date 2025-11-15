@@ -37,10 +37,14 @@ impl ExternalApisIsland {
     ) -> Result<Self> {
         println!("🌐 Initializing External APIs Island...");
 
-        // Initialize Market Data API
-        let market_api = Arc::new(MarketDataApi::with_all_keys(taapi_secret.clone(), cmc_api_key.clone(), finnhub_api_key.clone()).await?);
+        // Initialize Market Data API (clone API keys as they're needed for aggregator too)
+        let market_api = Arc::new(MarketDataApi::with_all_keys(
+            taapi_secret.clone(),
+            cmc_api_key.as_ref().cloned(),
+            finnhub_api_key.as_ref().cloned()
+        ).await?);
 
-        // Initialize API Aggregator
+        // Initialize API Aggregator (move the original values)
         let aggregator = if let Some(cache) = cache_system {
             Arc::new(ApiAggregator::with_cache_and_all_keys(
                 taapi_secret,

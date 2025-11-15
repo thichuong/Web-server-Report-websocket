@@ -42,7 +42,6 @@ pub struct WebSocketServiceIsland {
     pub market_data_streamer: Arc<MarketDataStreamer>,
     /// Broadcast transmitter for real-time updates
     /// Note: Used by broadcast_service for WebSocket message broadcasting
-    #[allow(dead_code)]
     pub broadcast_tx: broadcast::Sender<String>,
 }
 

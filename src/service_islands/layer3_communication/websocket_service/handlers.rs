@@ -19,7 +19,8 @@ impl WebSocketHandlers {
     
     /// Health check for WebSocket handlers
     pub async fn health_check(&self) -> bool {
-        // Verify WebSocket handlers are working
-        true // Will implement actual health check
+        // Stateless component - always healthy
+        // TODO: Add actual validation when state is added
+        true
     }
 }

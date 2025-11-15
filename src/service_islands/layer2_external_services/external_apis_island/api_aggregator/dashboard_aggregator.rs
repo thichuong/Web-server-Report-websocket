@@ -46,24 +46,51 @@ impl ApiAggregator {
             }
         }
 
-        // Helper function to extract price data
-        let get_price_data = |symbol: &str| -> (f64, f64) {
+        // Helper structure for price data
+        #[derive(Debug, Clone, Copy)]
+        struct CryptoPrice {
+            price_usd: f64,
+            change_24h: f64,
+        }
+
+        impl CryptoPrice {
+            fn from_json(data: &serde_json::Value) -> Self {
+                Self {
+                    price_usd: data["price_usd"].as_f64().unwrap_or(0.0),
+                    change_24h: data["change_24h"].as_f64().unwrap_or(0.0),
+                }
+            }
+
+            fn default() -> Self {
+                Self {
+                    price_usd: 0.0,
+                    change_24h: 0.0,
+                }
+            }
+        }
+
+        // Extract price data once for each symbol
+        let get_price = |symbol: &str| -> CryptoPrice {
             crypto_prices.get(symbol)
-                .map(|data| (
-                    data["price_usd"].as_f64().unwrap_or(0.0),
-                    data["change_24h"].as_f64().unwrap_or(0.0)
-                ))
-                .unwrap_or((0.0, 0.0))
+                .map(CryptoPrice::from_json)
+                .unwrap_or_else(CryptoPrice::default)
         };
 
         // Extract individual coin data
-        let (btc_price, btc_change) = get_price_data("BTC");
-        let (eth_price, eth_change) = get_price_data("ETH");
-        let (sol_price, sol_change) = get_price_data("SOL");
-        let (xrp_price, xrp_change) = get_price_data("XRP");
-        let (ada_price, ada_change) = get_price_data("ADA");
-        let (link_price, link_change) = get_price_data("LINK");
-        let (bnb_price, bnb_change) = get_price_data("BNB");
+        let btc = get_price("BTC");
+        let (btc_price, btc_change) = (btc.price_usd, btc.change_24h);
+        let eth = get_price("ETH");
+        let (eth_price, eth_change) = (eth.price_usd, eth.change_24h);
+        let sol = get_price("SOL");
+        let (sol_price, sol_change) = (sol.price_usd, sol.change_24h);
+        let xrp = get_price("XRP");
+        let (xrp_price, xrp_change) = (xrp.price_usd, xrp.change_24h);
+        let ada = get_price("ADA");
+        let (ada_price, ada_change) = (ada.price_usd, ada.change_24h);
+        let link = get_price("LINK");
+        let (link_price, link_change) = (link.price_usd, link.change_24h);
+        let bnb = get_price("BNB");
+        let (bnb_price, bnb_change) = (bnb.price_usd, bnb.change_24h);
 
         // Process global data
         let (market_cap, volume_24h, market_cap_change, btc_dominance, eth_dominance) = match global_result {

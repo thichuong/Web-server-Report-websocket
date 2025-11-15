@@ -68,8 +68,8 @@ impl ServiceIslands {
 
         // Spawn background leadership monitoring task
         tokio::spawn({
-            let leader_election = leader_election.clone();
-            let is_leader = is_leader.clone();
+            let leader_election = Arc::clone(&leader_election);
+            let is_leader = Arc::clone(&is_leader);
             async move {
                 leader_election.monitor_leadership(is_leader).await;
             }
@@ -99,7 +99,7 @@ impl ServiceIslands {
             taapi_secret,
             cmc_api_key,
             finnhub_api_key,
-            Some(cache_system.clone())
+            Some(Arc::clone(&cache_system))
         ).await?);
         println!("✅ External APIs Island initialized!");
 
@@ -109,8 +109,8 @@ impl ServiceIslands {
         // Initialize WebSocket Service with External APIs and Cache
         let websocket_service = Arc::new(
             WebSocketServiceIsland::with_external_apis_and_cache(
-                external_apis.clone(),
-                cache_system.clone()
+                Arc::clone(&external_apis),
+                Arc::clone(&cache_system)
             ).await?
         );
         println!("✅ WebSocket Service Island initialized!");
@@ -188,9 +188,15 @@ impl ServiceIslands {
         Ok(())
     }
 
-    /// Perform health check on all Service Islands
+    /// Perform health check on all Service Islands with logging
     pub async fn health_check(&self) -> bool {
-        let (is_healthy, _) = self.health_check_detailed().await;
+        let (is_healthy, details) = self.health_check_detailed().await;
+
+        // Log issues if health check fails
+        if !is_healthy {
+            tracing::warn!("Service Islands health check failed: {:?}", details);
+        }
+
         is_healthy
     }
 

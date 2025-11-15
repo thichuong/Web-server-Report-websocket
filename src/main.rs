@@ -9,8 +9,10 @@ use axum::{
 use tokio::{signal, time::interval};
 use tracing::{info, error, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use anyhow::Context;
 
 mod service_islands;
+mod performance;
 
 use service_islands::ServiceIslands;
 
@@ -58,11 +60,11 @@ async fn main() -> Result<(), anyhow::Error> {
     let port: u16 = env::var("PORT")
         .unwrap_or_else(|_| "8081".to_string())
         .parse()
-        .expect("PORT must be a valid number");
+        .context("PORT must be a valid number")?;
 
     let addr: SocketAddr = format!("{}:{}", host, port)
         .parse()
-        .expect("HOST and PORT must form a valid address");
+        .context("HOST and PORT must form a valid address")?;
 
     info!("🌐 WebSocket Service listening on ws://{}", addr);
     info!("📡 WebSocket endpoint: ws://{}/ws", addr);
@@ -258,17 +260,21 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
 /// Graceful shutdown signal handler
 async fn shutdown_signal() {
     let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
+        if let Err(e) = signal::ctrl_c().await {
+            error!("Failed to install Ctrl+C handler: {}", e);
+        }
     };
 
     #[cfg(unix)]
     let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
+        match signal::unix::signal(signal::unix::SignalKind::terminate()) {
+            Ok(mut sig) => {
+                sig.recv().await;
+            }
+            Err(e) => {
+                error!("Failed to install SIGTERM handler: {}", e);
+            }
+        }
     };
 
     #[cfg(not(unix))]

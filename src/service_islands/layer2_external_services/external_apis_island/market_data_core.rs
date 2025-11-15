@@ -6,6 +6,7 @@ use reqwest::Client;
 use anyhow::Result;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use crate::performance::OPTIMIZED_HTTP_CLIENT;
 
 
 /// Market Data API
@@ -43,17 +44,8 @@ impl MarketDataApi {
     ) -> Result<Self> {
         println!("🌐 Initializing Market Data API...");
 
-        // Use optimized HTTP client from performance module
-        let client = if let Ok(perf_client) = std::panic::catch_unwind(|| {
-            Client::builder().pool_max_idle_per_host(10).timeout(std::time::Duration::from_secs(30)).connect_timeout(std::time::Duration::from_secs(10)).build().unwrap_or_else(|_| Client::new())
-        }) {
-            perf_client
-        } else {
-            // Fallback client if performance module not available
-            Client::builder()
-                .timeout(std::time::Duration::from_secs(30))
-                .build()?
-        };
+        // Use the optimized HTTP client from the performance module
+        let client = OPTIMIZED_HTTP_CLIENT.clone();
 
         Ok(Self {
             client,
@@ -108,7 +100,7 @@ impl MarketDataApi {
         self.last_call_timestamp.store(
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or(std::time::Duration::from_secs(0))
                 .as_secs(),
             Ordering::Relaxed
         );

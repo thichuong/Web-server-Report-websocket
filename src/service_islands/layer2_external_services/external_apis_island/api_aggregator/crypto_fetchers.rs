@@ -30,7 +30,7 @@ impl ApiAggregator {
                 // Convert HashMap<String, (f64, f64)> to HashMap<String, serde_json::Value>
                 let mut result = HashMap::new();
                 for (coin, (price_usd, change_24h)) in raw_data {
-                    result.insert(coin.clone(), serde_json::json!({
+                    result.insert(coin, serde_json::json!({
                         "price_usd": price_usd,
                         "change_24h": change_24h,
                         "source": "binance",
@@ -62,7 +62,7 @@ impl ApiAggregator {
                     // Convert HashMap<String, (f64, f64)> to HashMap<String, serde_json::Value>
                     let mut result = HashMap::new();
                     for (coin, (price_usd, change_24h)) in raw_data {
-                        result.insert(coin.clone(), serde_json::json!({
+                        result.insert(coin, serde_json::json!({
                             "price_usd": price_usd,
                             "change_24h": change_24h,
                             "source": "binance",
@@ -87,7 +87,7 @@ impl ApiAggregator {
 
             let mut result = HashMap::new();
             for (coin, (price_usd, change_24h)) in raw_data {
-                result.insert(coin.clone(), serde_json::json!({
+                result.insert(coin, serde_json::json!({
                     "price_usd": price_usd,
                     "change_24h": change_24h,
                     "source": "binance",
