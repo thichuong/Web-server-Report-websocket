@@ -35,10 +35,10 @@ pub struct CacheSystemIsland {
     pub cache_manager: Arc<CacheManager>,
     /// L1 Cache - Moka in-memory cache (exposed for compatibility)
     #[allow(dead_code)]
-    pub l1_cache: Arc<L1Cache>,
+    pub l1_cache: Option<Arc<L1Cache>>,
     /// L2 Cache - Redis cache (exposed for compatibility)
     #[allow(dead_code)]
-    pub l2_cache: Arc<L2Cache>,
+    pub l2_cache: Option<Arc<L2Cache>>,
 }
 
 impl CacheSystemIsland {
