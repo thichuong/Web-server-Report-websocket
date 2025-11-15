@@ -62,7 +62,7 @@ dashmap = "5.5"        # Thread-safe HashMap
 num_cpus = "1.16"      # Detect CPU cores
 
 # Cache dependencies - Multi-tier cache system
-multi-tier-cache = "0.5.2"  # Unified cache library with type-safe database caching
+multi-tier-cache = "0.5.3"  # Unified cache library with type-safe database caching
 moka = { version = "0.12", features = ["future"] }  # L1 In-memory cache
 bb8-redis = "0.15"     # Redis connection pool
 
