@@ -5,6 +5,7 @@
 
 use anyhow::Result;
 use std::sync::Arc;
+use tracing::{debug, warn};
 use super::aggregator_core::ApiAggregator;
 
 impl ApiAggregator {
@@ -19,15 +20,15 @@ impl ApiAggregator {
                 "global_coingecko_1h",
                 crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::CacheStrategy::MediumTerm, // 1 hour
                 || async move {
-                    println!("🔄 Fetching global data from API...");
+                    debug!("Fetching global data from API");
                     let data = market_api.fetch_global_data().await?;
-                    println!("✅ Global data fetched");
+                    debug!("Global data fetched");
                     Ok(data)
                 }
             ).await
         } else {
             // No cache - direct API call
-            println!("⚠️ No cache system - calling API directly");
+            warn!("No cache system - calling API directly for global data");
             self.market_api.fetch_global_data().await
         }
     }
@@ -43,15 +44,15 @@ impl ApiAggregator {
                 "fng_alternative_5m",
                 crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::CacheStrategy::ShortTerm, // 5 minutes
                 || async move {
-                    println!("🔄 Fetching Fear & Greed Index from API...");
+                    debug!("Fetching Fear & Greed Index from API");
                     let data = market_api.fetch_fear_greed_index().await?;
-                    println!("✅ Fear & Greed Index fetched");
+                    debug!("Fear & Greed Index fetched");
                     Ok(data)
                 }
             ).await
         } else {
             // No cache - direct API call
-            println!("⚠️ No cache system - calling API directly");
+            warn!("No cache system - calling API directly for FNG");
             self.market_api.fetch_fear_greed_index().await
         }
     }
@@ -67,15 +68,15 @@ impl ApiAggregator {
                 "btc_rsi_14_taapi_3h",
                 crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::CacheStrategy::LongTerm, // 3 hours
                 || async move {
-                    println!("🔄 Fetching BTC RSI-14 from API...");
+                    debug!("Fetching BTC RSI-14 from API");
                     let data = market_api.fetch_btc_rsi_14().await?;
-                    println!("✅ BTC RSI-14 fetched");
+                    debug!("BTC RSI-14 fetched");
                     Ok(data)
                 }
             ).await
         } else {
             // No cache - direct API call
-            println!("⚠️ No cache system - calling API directly");
+            warn!("No cache system - calling API directly for RSI");
             self.market_api.fetch_btc_rsi_14().await
         }
     }
@@ -91,15 +92,15 @@ impl ApiAggregator {
                 "us_indices_finnhub_5m",
                 crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::CacheStrategy::ShortTerm, // 5 minutes
                 || async move {
-                    println!("🔄 Fetching US Stock Indices from API...");
+                    debug!("Fetching US Stock Indices from API");
                     let data = market_api.fetch_us_stock_indices().await?;
-                    println!("✅ US Stock Indices fetched");
+                    debug!("US Stock Indices fetched");
                     Ok(data)
                 }
             ).await
         } else {
             // No cache - direct API call
-            println!("⚠️ No cache system - calling API directly");
+            warn!("No cache system - calling API directly for US indices");
             self.market_api.fetch_us_stock_indices().await
         }
     }

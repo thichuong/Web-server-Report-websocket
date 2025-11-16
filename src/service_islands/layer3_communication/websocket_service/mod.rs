@@ -15,6 +15,7 @@ pub mod market_data_streamer;
 use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::broadcast;
+use tracing::{info, warn, debug};
 
 use connection_manager::ConnectionManager;
 use message_handler::MessageHandler;
@@ -53,7 +54,7 @@ impl WebSocketServiceIsland {
         _external_apis: Arc<ExternalApisIsland>,
         _cache_system: Arc<crate::service_islands::layer1_infrastructure::cache_system_island::CacheSystemIsland>
     ) -> Result<Self> {
-        println!("🔧 Initializing WebSocket Service Island with External APIs and Cache...");
+        info!("Initializing WebSocket Service Island with External APIs and Cache");
 
         // Initialize components
         let connection_manager = Arc::new(ConnectionManager::new());
@@ -89,7 +90,7 @@ impl WebSocketServiceIsland {
         _layer2_grpc_client: Arc<String>, // Placeholder - not used
         _cache_system: Arc<crate::service_islands::layer1_infrastructure::cache_system_island::CacheSystemIsland>
     ) -> Result<Self> {
-        println!("🔧 Initializing WebSocket Service Island (websocket service doesn't use gRPC)...");
+        info!("Initializing WebSocket Service Island (websocket service doesn't use gRPC)");
 
         // Initialize components
         let connection_manager = Arc::new(ConnectionManager::new());
@@ -103,7 +104,7 @@ impl WebSocketServiceIsland {
         // Create broadcast channel (increased buffer for high-frequency updates)
         let (broadcast_tx, _) = broadcast::channel(1000);
 
-        println!("✅ WebSocket Service Island initialized with gRPC Client");
+        info!("WebSocket Service Island initialized with gRPC Client");
 
         Ok(Self {
             connection_manager,
@@ -116,10 +117,10 @@ impl WebSocketServiceIsland {
     }
 
     /// Health check for the entire WebSocket Service Island
-    /// 
+    ///
     /// Validates that all components are operational.
     pub async fn health_check(&self) -> Result<()> {
-        println!("🏥 Checking WebSocket Service Island health...");
+        debug!("Checking WebSocket Service Island health");
         
         // Check all components
         let checks = vec![
@@ -133,15 +134,15 @@ impl WebSocketServiceIsland {
         let mut all_healthy = true;
         for (component, healthy) in checks {
             if healthy {
-                println!("  ✅ {} - Healthy", component);
+                debug!("{} - Healthy", component);
             } else {
-                println!("  ❌ {} - Unhealthy", component);
+                warn!("{} - Unhealthy", component);
                 all_healthy = false;
             }
         }
         
         if all_healthy {
-            println!("✅ WebSocket Service Island - All components healthy");
+            info!("WebSocket Service Island - All components healthy");
             Ok(())
         } else {
             Err(anyhow::anyhow!("WebSocket Service Island - Some components unhealthy"))

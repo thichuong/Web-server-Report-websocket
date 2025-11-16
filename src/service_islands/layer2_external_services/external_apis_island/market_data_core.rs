@@ -6,6 +6,7 @@ use reqwest::Client;
 use anyhow::Result;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use tracing::{info, warn, error};
 use crate::performance::OPTIMIZED_HTTP_CLIENT;
 
 
@@ -42,7 +43,7 @@ impl MarketDataApi {
         cmc_api_key: Option<String>,
         finnhub_api_key: Option<String>
     ) -> Result<Self> {
-        println!("🌐 Initializing Market Data API...");
+        info!("Initializing Market Data API");
 
         // Use the optimized HTTP client from the performance module
         let client = OPTIMIZED_HTTP_CLIENT.clone();
@@ -63,16 +64,16 @@ impl MarketDataApi {
     pub async fn health_check(&self) -> bool {
         match self.test_api_connectivity().await {
             Ok(_) => {
-                println!("  ✅ Market Data API connectivity test passed");
+                info!("Market Data API connectivity test passed");
                 true
             }
             Err(e) => {
                 let error_str = e.to_string();
                 if error_str.contains("429") || error_str.contains("Too Many Requests") {
-                    println!("  ⚠️ Market Data API health check: Rate limited, but service is available");
+                    warn!("Market Data API health check: Rate limited, but service is available");
                     true // Rate limiting means API is working, just busy
                 } else {
-                    eprintln!("  ❌ Market Data API connectivity test failed: {}", e);
+                    error!(error = %e, "Market Data API connectivity test failed");
                     false
                 }
             }

@@ -6,6 +6,7 @@ use reqwest::Client;
 use anyhow::Result;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
+use tracing::{info, debug, error};
 use crate::service_islands::layer2_external_services::external_apis_island::market_data_api::MarketDataApi;
 use crate::service_islands::layer1_infrastructure::CacheSystemIsland;
 use crate::performance::OPTIMIZED_HTTP_CLIENT;
@@ -43,7 +44,7 @@ impl ApiAggregator {
         cmc_api_key: Option<String>,
         finnhub_api_key: Option<String>
     ) -> Result<Self> {
-        println!("📊 Initializing API Aggregator...");
+        info!("Initializing API Aggregator");
 
         // Use the optimized HTTP client from the performance module
         let client = OPTIMIZED_HTTP_CLIENT.clone();
@@ -93,11 +94,11 @@ impl ApiAggregator {
         // Test that we can coordinate API calls
         match self.test_aggregation().await {
             Ok(_) => {
-                println!("  ✅ API Aggregator coordination test passed");
+                info!("API Aggregator coordination test passed");
                 true
             }
             Err(e) => {
-                eprintln!("  ❌ API Aggregator coordination test failed: {}", e);
+                error!(error = %e, "API Aggregator coordination test failed");
                 false
             }
         }
@@ -105,20 +106,20 @@ impl ApiAggregator {
 
     /// Test aggregation functionality - OPTIMIZED to prevent rate limiting
     async fn test_aggregation(&self) -> Result<()> {
-        println!("🏥 [OPTIMIZED] Testing aggregation using cache instead of API call...");
+        debug!("Testing aggregation using cache instead of API call");
 
         // Use cache lookup instead of actual API call to prevent rate limiting during health checks
         if let Some(ref cache) = self.cache_system {
             let cache_key = "btc_coingecko_30s";
             if let Ok(Some(_cached_data)) = cache.cache_manager.get(cache_key).await {
-                println!("✅ Aggregation test passed - cached BTC data available");
+                debug!("Aggregation test passed - cached BTC data available");
                 return Ok(());
             }
         }
 
         // If no cached data, don't make API call during health check
         // This prevents unnecessary API calls that cause rate limiting
-        println!("⚠️ Aggregation test passed - no cached data (health check doesn't require API call)");
+        debug!("Aggregation test passed - no cached data (health check doesn't require API call)");
         Ok(())
     }
 }

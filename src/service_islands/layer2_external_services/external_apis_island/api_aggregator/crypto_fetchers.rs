@@ -5,6 +5,7 @@
 use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::Arc;
+use tracing::{info, debug, warn};
 use super::aggregator_core::ApiAggregator;
 
 impl ApiAggregator {
@@ -22,7 +23,7 @@ impl ApiAggregator {
         // Handle force refresh: bypass cache and update
         if force_refresh {
             if let Some(ref cache) = self.cache_system {
-                println!("🔄 Force refresh - fetching fresh crypto prices from API");
+                info!("Force refresh - fetching fresh crypto prices from API");
 
                 // Fetch from API
                 let raw_data = self.market_api.fetch_multi_crypto_prices().await?;
@@ -42,7 +43,7 @@ impl ApiAggregator {
                 let cache_value = serde_json::to_value(&result).unwrap_or(serde_json::json!({}));
                 let _ = cache.cache_manager.set_with_strategy(cache_key, cache_value,
                     crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::realtime_strategy()).await;
-                println!("💾 All crypto prices cached after force refresh (RealTime - 30s TTL)");
+                debug!("All crypto prices cached after force refresh (RealTime - 30s TTL)");
 
                 return Ok(result);
             }
@@ -56,7 +57,7 @@ impl ApiAggregator {
                 cache_key,
                 crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::realtime_strategy(),
                 || async move {
-                    println!("🔄 Fetching all crypto prices from API...");
+                    debug!("Fetching all crypto prices from API");
                     let raw_data = market_api.fetch_multi_crypto_prices().await?;
 
                     // Convert HashMap<String, (f64, f64)> to HashMap<String, serde_json::Value>
@@ -70,19 +71,19 @@ impl ApiAggregator {
                         }));
                     }
 
-                    println!("✅ All crypto prices fetched and ready for caching");
+                    debug!("All crypto prices fetched and ready for caching");
                     Ok(result)
                 }
             ).await {
                 Ok(prices) => {
-                    println!("💾 All crypto prices ready (with stampede protection)");
+                    debug!("All crypto prices ready (with stampede protection)");
                     Ok(prices)
                 }
                 Err(e) => Err(e)
             }
         } else {
             // No cache system - direct API call
-            println!("⚠️ No cache system - calling API directly");
+            warn!("No cache system - calling API directly");
             let raw_data = self.market_api.fetch_multi_crypto_prices().await?;
 
             let mut result = HashMap::new();

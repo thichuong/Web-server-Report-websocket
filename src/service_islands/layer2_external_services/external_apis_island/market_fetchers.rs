@@ -16,7 +16,7 @@ impl MarketDataApi {
                 Ok(data)
             }
             Err(e) => {
-                println!("⚠️ CoinGecko global data failed: {}, trying CoinMarketCap...", e);
+                warn!(error = %e, "CoinGecko global data failed, trying CoinMarketCap");
                 // Fallback to CoinMarketCap
                 match self.fetch_global_data_cmc().await {
                     Ok(data) => {
@@ -25,7 +25,7 @@ impl MarketDataApi {
                     }
                     Err(cmc_err) => {
                         self.record_failure();
-                        println!("❌ Both CoinGecko and CoinMarketCap failed for global data");
+                        error!("Both CoinGecko and CoinMarketCap failed for global data");
                         Err(anyhow::anyhow!("Primary error: {}. Fallback error: {}", e, cmc_err))
                     }
                 }
@@ -109,7 +109,7 @@ impl MarketDataApi {
                     }
 
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
-                    println!("⚠️ CoinMarketCap global API rate limit (429), retrying in {:?} (attempt {}/{})", delay, attempts, max_attempts);
+                    warn!(delay_ms = delay.as_millis(), attempt = attempts, max_attempts = max_attempts, "CoinMarketCap global API rate limit (429), retrying");
                     tokio::time::sleep(delay).await;
                     continue;
                 }
@@ -200,7 +200,7 @@ impl MarketDataApi {
                     }
 
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
-                    println!("⚠️ RSI API rate limit (429), retrying in {:?} (attempt {}/{})", delay, attempts, max_attempts);
+                    warn!(delay_ms = delay.as_millis(), attempt = attempts, max_attempts = max_attempts, "RSI API rate limit (429), retrying");
                     tokio::time::sleep(delay).await;
                     continue;
                 }
@@ -259,7 +259,7 @@ impl MarketDataApi {
                     results.insert(symbol.to_string(), index_data);
                 }
                 Err(e) => {
-                    eprintln!("⚠️ Failed to fetch {}: {}", name, e);
+                    warn!(index_name = %name, error = %e, "Failed to fetch US stock index");
                     all_success = false;
                     // Insert placeholder data for failed fetch
                     results.insert(symbol.to_string(), serde_json::json!({
@@ -323,7 +323,7 @@ impl MarketDataApi {
                     }
 
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
-                    println!("⚠️ Finnhub rate limit (429) for {}, retrying in {:?} (attempt {}/{})", symbol, delay, attempts, max_attempts);
+                    warn!(symbol = %symbol, delay_ms = delay.as_millis(), attempt = attempts, max_attempts = max_attempts, "Finnhub rate limit (429), retrying");
                     tokio::time::sleep(delay).await;
                     continue;
                 }

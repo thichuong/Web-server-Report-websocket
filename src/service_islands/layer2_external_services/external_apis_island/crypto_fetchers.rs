@@ -18,7 +18,7 @@ impl MarketDataApi {
             }
             Err(e) => {
                 self.record_failure();
-                println!("❌ Binance multi-ticker failed: {}", e);
+                error!(error = %e, "Binance multi-ticker failed");
                 Err(e)
             }
         }
@@ -107,7 +107,7 @@ impl MarketDataApi {
                     }
 
                     let delay = std::time::Duration::from_millis(2000 * (2_u64.pow(attempts)));
-                    println!("⚠️ Binance blocking (418) for {}, retrying in {:?} (attempt {}/{})", url, delay, attempts, max_attempts);
+                    warn!(url = %url, delay_ms = delay.as_millis(), attempt = attempts, max_attempts = max_attempts, "Binance blocking (418), retrying");
                     tokio::time::sleep(delay).await;
                     continue;
                 }
@@ -119,7 +119,7 @@ impl MarketDataApi {
                     }
 
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
-                    println!("⚠️ Rate limit (429) hit for {}, retrying in {:?} (attempt {}/{})", url, delay, attempts, max_attempts);
+                    warn!(url = %url, delay_ms = delay.as_millis(), attempt = attempts, max_attempts = max_attempts, "Rate limit (429) hit, retrying");
                     tokio::time::sleep(delay).await;
                     continue;
                 }

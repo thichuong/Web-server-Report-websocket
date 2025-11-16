@@ -4,6 +4,7 @@
 //! to connected WebSocket clients, following Service Islands Architecture.
 
 use std::sync::Arc;
+use tracing::{info, warn, error};
 
 use crate::service_islands::layer2_external_services::external_apis_island::ExternalApisIsland;
 
@@ -31,23 +32,23 @@ impl MarketDataStreamer {
         if let Some(external_apis) = &self.external_apis {
             match external_apis.health_check().await {
                 Ok(_) => {
-                    println!("  ✅ Market Data Streamer - External APIs healthy");
+                    info!("Market Data Streamer - External APIs healthy");
                     true
                 }
                 Err(e) => {
                     // Check if this is just a rate limit or circuit breaker issue
                     let error_msg = e.to_string();
                     if error_msg.contains("429") || error_msg.contains("Circuit breaker") || error_msg.contains("rate limit") {
-                        println!("  ⚠️ Market Data Streamer - External APIs rate limited (still functional)");
+                        warn!("Market Data Streamer - External APIs rate limited (still functional)");
                         true // Consider rate limiting as "healthy" since it's temporary
                     } else {
-                        println!("  ❌ Market Data Streamer - External APIs unhealthy: {}", e);
+                        error!("Market Data Streamer - External APIs unhealthy: {}", e);
                         false
                     }
                 }
             }
         } else {
-            println!("  ⚠️ Market Data Streamer - External APIs not configured (test mode)");
+            warn!("Market Data Streamer - External APIs not configured (test mode)");
             true // Not an error, just not configured
         }
     }

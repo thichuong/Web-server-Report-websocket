@@ -15,6 +15,7 @@ pub mod circuit_breaker;
 
 use anyhow::Result;
 use std::sync::Arc;
+use tracing::info;
 
 use market_data_api::MarketDataApi;
 use api_aggregator::ApiAggregator;
@@ -35,7 +36,7 @@ impl ExternalApisIsland {
         finnhub_api_key: Option<String>,
         cache_system: Option<Arc<crate::service_islands::layer1_infrastructure::CacheSystemIsland>>,
     ) -> Result<Self> {
-        println!("🌐 Initializing External APIs Island...");
+        info!("Initializing External APIs Island");
 
         // Initialize Market Data API (clone API keys as they're needed for aggregator too)
         let market_api = Arc::new(MarketDataApi::with_all_keys(
@@ -60,7 +61,7 @@ impl ExternalApisIsland {
             ).await?)
         };
 
-        println!("✅ External APIs Island initialized successfully");
+        info!("External APIs Island initialized successfully");
 
         Ok(Self {
             market_api,

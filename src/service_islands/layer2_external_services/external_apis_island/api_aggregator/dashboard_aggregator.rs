@@ -6,6 +6,7 @@
 use anyhow::Result;
 use std::sync::atomic::Ordering;
 use tokio::time::{timeout, Duration};
+use tracing::{info, warn};
 use super::aggregator_core::ApiAggregator;
 
 impl ApiAggregator {
@@ -17,7 +18,7 @@ impl ApiAggregator {
         let start_time = std::time::Instant::now();
         self.total_aggregations.fetch_add(1, Ordering::Relaxed);
 
-        println!("🔄 Starting dashboard summary v2 aggregation...");
+        info!("Starting dashboard summary v2 aggregation");
 
         // Fetch essential data concurrently with shorter timeouts for summary
         // OPTIMIZED: Single multi-crypto API call instead of 7 individual calls
@@ -42,7 +43,7 @@ impl ApiAggregator {
             }
             _ => {
                 partial_failure = true;
-                println!("⚠️ Multi-crypto prices fetch failed");
+                warn!("Multi-crypto prices fetch failed");
             }
         }
 
@@ -139,10 +140,10 @@ impl ApiAggregator {
         // Update statistics
         if partial_failure {
             self.partial_failures.fetch_add(1, Ordering::Relaxed);
-            println!("⚠️ Dashboard summary v2 aggregated with partial failures in {}ms", duration.as_millis());
+            warn!(duration_ms = duration.as_millis(), "Dashboard summary v2 aggregated with partial failures");
         } else {
             self.successful_aggregations.fetch_add(1, Ordering::Relaxed);
-            println!("✅ Dashboard summary v2 aggregated successfully in {}ms", duration.as_millis());
+            info!(duration_ms = duration.as_millis(), "Dashboard summary v2 aggregated successfully");
         }
 
         // Return focused summary JSON
