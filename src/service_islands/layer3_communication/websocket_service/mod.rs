@@ -14,7 +14,6 @@ pub mod market_data_streamer;
 
 use anyhow::Result;
 use std::sync::Arc;
-use tokio::sync::broadcast;
 use tracing::{info, warn, debug};
 
 use connection_manager::ConnectionManager;
@@ -41,9 +40,6 @@ pub struct WebSocketServiceIsland {
     pub handlers: Arc<WebSocketHandlers>,
     /// Market data streaming component
     pub market_data_streamer: Arc<MarketDataStreamer>,
-    /// Broadcast transmitter for real-time updates
-    /// Note: Used by `broadcast_service` for WebSocket message broadcasting
-    pub broadcast_tx: broadcast::Sender<String>,
 }
 
 impl WebSocketServiceIsland {
@@ -65,20 +61,16 @@ impl WebSocketServiceIsland {
         // Initialize market data streamer WITHOUT external APIs dependency
         // It should use layer2_adapters instead for proper architecture
         let market_data_streamer = Arc::new(MarketDataStreamer::new());
-        
-        // Create broadcast channel (increased buffer for high-frequency updates)
-        let (broadcast_tx, _) = broadcast::channel(1000);
-        
+
         // Start unified market data streaming via Layer 2 Adapters
         // TODO: Update MarketDataStreamer to use layer2_adapters instead of external_apis
-        
+
         Ok(Self {
             connection_manager,
             message_handler,
             broadcast_service,
             handlers,
             market_data_streamer,
-            broadcast_tx,
         })
     }
 
@@ -101,9 +93,6 @@ impl WebSocketServiceIsland {
         // Initialize market data streamer
         let market_data_streamer = Arc::new(MarketDataStreamer::new());
 
-        // Create broadcast channel (increased buffer for high-frequency updates)
-        let (broadcast_tx, _) = broadcast::channel(1000);
-
         info!("WebSocket Service Island initialized with gRPC Client");
 
         Ok(Self {
@@ -112,7 +101,6 @@ impl WebSocketServiceIsland {
             broadcast_service,
             handlers,
             market_data_streamer,
-            broadcast_tx,
         })
     }
 

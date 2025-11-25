@@ -6,7 +6,6 @@
 pub mod layer1_infrastructure;
 pub mod layer2_external_services;
 pub mod layer3_communication;
-pub mod errors;
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
@@ -189,18 +188,6 @@ impl ServiceIslands {
         let data_str = server_message.to_json_string()?;
         self.websocket_service.broadcast_service.broadcast(data_str).await;
         Ok(())
-    }
-
-    /// Perform health check on all Service Islands with logging
-    pub async fn health_check(&self) -> bool {
-        let (is_healthy, details) = self.health_check_detailed().await;
-
-        // Log issues if health check fails
-        if !is_healthy {
-            tracing::warn!("Service Islands health check failed: {:?}", details);
-        }
-
-        is_healthy
     }
 
     /// Detailed health check that returns status and details

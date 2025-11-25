@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use redis::{AsyncCommands, Client};
+use redis::Client;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -121,24 +121,6 @@ impl LeaderElectionService {
         }
 
         Ok(acquired)
-    }
-
-    /// Check if this node is currently the leader
-    ///
-    /// Returns true if the lock is held by this node.
-    pub async fn is_leader(&self) -> Result<bool> {
-        let mut conn = self
-            .redis_client
-            .get_multiplexed_async_connection()
-            .await
-            .context("Failed to get Redis connection")?;
-
-        let current_leader: Option<String> = conn
-            .get(&self.election_key)
-            .await
-            .context("Failed to get leader from Redis")?;
-
-        Ok(current_leader.as_deref() == Some(self.node_id.as_str()))
     }
 
     /// Renew leadership (heartbeat)
@@ -299,15 +281,6 @@ impl LeaderElectionService {
         }
     }
 
-    /// Get the node ID
-    pub fn node_id(&self) -> &str {
-        &self.node_id
-    }
-
-    /// Get the election key name
-    pub fn election_key(&self) -> &str {
-        &self.election_key
-    }
 }
 
 #[cfg(test)]

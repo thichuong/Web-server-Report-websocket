@@ -7,84 +7,6 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-// ============================================================================
-// Error Code Constants
-// ============================================================================
-
-pub const ERROR_CODE_INVALID_MESSAGE: &str = "INVALID_MESSAGE";
-pub const ERROR_CODE_INVALID_TOPIC: &str = "INVALID_TOPIC";
-pub const ERROR_CODE_SUBSCRIPTION_FAILED: &str = "SUBSCRIPTION_FAILED";
-pub const ERROR_CODE_UNSUBSCRIBE_FAILED: &str = "UNSUBSCRIBE_FAILED";
-pub const ERROR_CODE_INTERNAL_ERROR: &str = "INTERNAL_ERROR";
-pub const ERROR_CODE_RATE_LIMITED: &str = "RATE_LIMITED";
-
-// ============================================================================
-// Newtypes for Type Safety (Avoiding Primitive Obsession)
-// ============================================================================
-
-/// Strongly-typed price in USD
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct Price(pub f64);
-
-/// Strongly-typed percentage change
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct ChangePercentage(pub f64);
-
-/// Strongly-typed volume
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct Volume(pub f64);
-
-/// Strongly-typed Unix timestamp (seconds)
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct UnixTimestamp(pub i64);
-
-/// Strongly-typed connection ID
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-#[serde(transparent)]
-pub struct ConnectionId(pub String);
-
-/// Strongly-typed node ID for distributed systems
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-#[serde(transparent)]
-pub struct NodeId(pub String);
-
-/// Crypto symbol enum for type-safe symbol handling
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub enum CryptoSymbol {
-    #[serde(rename = "BTC")]
-    Bitcoin,
-    #[serde(rename = "ETH")]
-    Ethereum,
-    #[serde(rename = "SOL")]
-    Solana,
-    #[serde(rename = "XRP")]
-    Ripple,
-    #[serde(rename = "ADA")]
-    Cardano,
-    #[serde(rename = "LINK")]
-    Chainlink,
-    #[serde(rename = "BNB")]
-    BinanceCoin,
-}
-
-impl CryptoSymbol {
-    /// Get the ticker symbol as a string
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            CryptoSymbol::Bitcoin => "BTC",
-            CryptoSymbol::Ethereum => "ETH",
-            CryptoSymbol::Solana => "SOL",
-            CryptoSymbol::Ripple => "XRP",
-            CryptoSymbol::Cardano => "ADA",
-            CryptoSymbol::Chainlink => "LINK",
-            CryptoSymbol::BinanceCoin => "BNB",
-        }
-    }
-}
 
 // ============================================================================
 // Crypto Price Data (Internal API format)
@@ -160,43 +82,6 @@ pub struct StockIndex {
     pub percent_change: f64,
 }
 
-// ============================================================================
-// Client Messages (Client → Server)
-// ============================================================================
-
-/// Messages sent FROM the client TO the server.
-///
-/// Uses adjacently-tagged enum format for easy frontend parsing:
-/// ```json
-/// {
-///   "type": "Subscribe",
-///   "payload": { "topics": ["BTC", "ETH"] }
-/// }
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", content = "payload")]
-pub enum ClientMessage {
-    /// Subscribe to specific topics or symbols
-    Subscribe(SubscribePayload),
-
-    /// Unsubscribe from topics
-    Unsubscribe(UnsubscribePayload),
-
-    /// Heartbeat/ping to keep connection alive
-    Heartbeat,
-}
-
-impl ClientMessage {
-    /// Parse a `ClientMessage` from a JSON string
-    ///
-    /// # Example
-    /// ```
-    /// let msg = ClientMessage::from_json_str(r#"{"type":"Heartbeat"}"#)?;
-    /// ```
-    pub fn from_json_str(s: &str) -> Result<Self, serde_json::Error> {
-        serde_json::from_str(s)
-    }
-}
 
 // ============================================================================
 // Server Messages (Server → Client)
@@ -228,72 +113,12 @@ pub enum ServerMessage {
 }
 
 impl ServerMessage {
-    /// Create a new error message
-    ///
-    /// # Example
-    /// ```
-    /// let error = ServerMessage::new_error(
-    ///     ERROR_CODE_INVALID_TOPIC,
-    ///     "Topic 'INVALID' does not exist"
-    /// );
-    /// ```
-    pub fn new_error(code: &str, message: &str) -> Self {
-        ServerMessage::Error(ErrorPayload {
-            code: code.to_string(),
-            message: message.to_string(),
-            timestamp: Utc::now().timestamp(),
-        })
-    }
-
-    /// Create a welcome message
-    pub fn new_welcome(connection_id: String, server_version: &str) -> Self {
-        ServerMessage::Welcome(WelcomePayload {
-            connection_id,
-            server_version: server_version.to_string(),
-            timestamp: Utc::now().to_rfc3339(),
-        })
-    }
-
-    /// Create an acknowledgment message
-    pub fn new_ack(action: &str, topics: Vec<String>) -> Self {
-        ServerMessage::Ack(AckPayload {
-            action: action.to_string(),
-            topics,
-            timestamp: Utc::now().timestamp(),
-        })
-    }
-
     /// Serialize to JSON string for sending via WebSocket
-    ///
-    /// # Example
-    /// ```
-    /// let msg = ServerMessage::new_error("ERR001", "Something went wrong");
-    /// let json_str = msg.to_json_string()?;
-    /// socket.send(Message::Text(json_str)).await?;
-    /// ```
     pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
     }
 }
 
-// ============================================================================
-// Client Message Payloads
-// ============================================================================
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SubscribePayload {
-    /// List of topics/symbols to subscribe to
-    /// Examples: ["BTC", "ETH", "`MarketStats`", "`SystemHealth`"]
-    pub topics: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UnsubscribePayload {
-    /// List of topics/symbols to unsubscribe from
-    pub topics: Vec<String>,
-}
 
 // ============================================================================
 // Server Message Payloads
@@ -415,17 +240,6 @@ pub struct DashboardData {
 }
 
 impl DashboardData {
-    /// Deserialize from JSON string (e.g., from Redis stream)
-    ///
-    /// # Example
-    /// ```
-    /// let json = r#"{"btc_price_usd": 96000.0, "fng_value": 10, ...}"#;
-    /// let data = DashboardData::from_json_str(json)?;
-    /// ```
-    pub fn from_json_str(s: &str) -> Result<Self, serde_json::Error> {
-        serde_json::from_str(s)
-    }
-
     /// Serialize to JSON string
     pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
@@ -456,17 +270,6 @@ impl DashboardUpdatePayload {
         }
     }
 
-    /// Create from JSON string (e.g., from Redis stream)
-    ///
-    /// # Example
-    /// ```
-    /// let redis_value = r#"{"btc_price_usd": 96000.0, "fng_value": 10, ...}"#;
-    /// let payload = DashboardUpdatePayload::from_json_str(redis_value, "external_apis")?;
-    /// ```
-    pub fn from_json_str(json: &str, source: &str) -> Result<Self, serde_json::Error> {
-        let data = DashboardData::from_json_str(json)?;
-        Ok(Self::new(data, source))
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
