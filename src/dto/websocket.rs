@@ -6,7 +6,6 @@
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 // ============================================================================
 // Error Code Constants
@@ -18,6 +17,148 @@ pub const ERROR_CODE_SUBSCRIPTION_FAILED: &str = "SUBSCRIPTION_FAILED";
 pub const ERROR_CODE_UNSUBSCRIBE_FAILED: &str = "UNSUBSCRIBE_FAILED";
 pub const ERROR_CODE_INTERNAL_ERROR: &str = "INTERNAL_ERROR";
 pub const ERROR_CODE_RATE_LIMITED: &str = "RATE_LIMITED";
+
+// ============================================================================
+// Newtypes for Type Safety (Avoiding Primitive Obsession)
+// ============================================================================
+
+/// Strongly-typed price in USD
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Price(pub f64);
+
+/// Strongly-typed percentage change
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ChangePercentage(pub f64);
+
+/// Strongly-typed volume
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Volume(pub f64);
+
+/// Strongly-typed Unix timestamp (seconds)
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct UnixTimestamp(pub i64);
+
+/// Strongly-typed connection ID
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(transparent)]
+pub struct ConnectionId(pub String);
+
+/// Strongly-typed node ID for distributed systems
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(transparent)]
+pub struct NodeId(pub String);
+
+/// Crypto symbol enum for type-safe symbol handling
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub enum CryptoSymbol {
+    #[serde(rename = "BTC")]
+    Bitcoin,
+    #[serde(rename = "ETH")]
+    Ethereum,
+    #[serde(rename = "SOL")]
+    Solana,
+    #[serde(rename = "XRP")]
+    Ripple,
+    #[serde(rename = "ADA")]
+    Cardano,
+    #[serde(rename = "LINK")]
+    Chainlink,
+    #[serde(rename = "BNB")]
+    BinanceCoin,
+}
+
+impl CryptoSymbol {
+    /// Get the ticker symbol as a string
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CryptoSymbol::Bitcoin => "BTC",
+            CryptoSymbol::Ethereum => "ETH",
+            CryptoSymbol::Solana => "SOL",
+            CryptoSymbol::Ripple => "XRP",
+            CryptoSymbol::Cardano => "ADA",
+            CryptoSymbol::Chainlink => "LINK",
+            CryptoSymbol::BinanceCoin => "BNB",
+        }
+    }
+}
+
+// ============================================================================
+// Crypto Price Data (Internal API format)
+// ============================================================================
+
+/// Cryptocurrency price data from external APIs
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct CryptoPrice {
+    /// Price in USD
+    pub price_usd: f64,
+
+    /// 24-hour price change percentage
+    pub change_24h: f64,
+}
+
+impl CryptoPrice {
+    /// Create a new CryptoPrice
+    pub fn new(price_usd: f64, change_24h: f64) -> Self {
+        Self {
+            price_usd,
+            change_24h,
+        }
+    }
+
+    /// Default/zero values for fallback
+    pub fn zero() -> Self {
+        Self {
+            price_usd: 0.0,
+            change_24h: 0.0,
+        }
+    }
+}
+
+impl Default for CryptoPrice {
+    fn default() -> Self {
+        Self::zero()
+    }
+}
+
+// ============================================================================
+// US Stock Indices (Strongly-typed structure)
+// ============================================================================
+
+/// US Stock market indices data
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct UsStockIndices {
+    /// S&P 500 index data
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sp500: Option<StockIndex>,
+
+    /// NASDAQ composite index data
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nasdaq: Option<StockIndex>,
+
+    /// Dow Jones Industrial Average data
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dow_jones: Option<StockIndex>,
+}
+
+/// Individual stock index data
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StockIndex {
+    /// Current index value
+    pub current_value: f64,
+
+    /// Absolute change
+    pub change: f64,
+
+    /// Percentage change
+    pub percent_change: f64,
+}
 
 // ============================================================================
 // Client Messages (Client → Server)
@@ -259,8 +400,8 @@ pub struct DashboardData {
     pub fng_value: u32,
 
     // US Stock Indices (nested object)
-    #[serde(alias = "us_stock_indices")]
-    pub us_stock_indices: Value,
+    #[serde(alias = "us_stock_indices", default)]
+    pub us_stock_indices: UsStockIndices,
 
     // Metadata
     #[serde(alias = "fetch_duration_ms")]

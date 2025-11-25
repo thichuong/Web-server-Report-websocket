@@ -10,6 +10,12 @@ pub struct MessageHandler {
     // Component state will be added here
 }
 
+impl Default for MessageHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MessageHandler {
     /// Create a new MessageHandler
     pub fn new() -> Self {

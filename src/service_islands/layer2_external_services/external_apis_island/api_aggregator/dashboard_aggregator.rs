@@ -8,13 +8,14 @@ use std::sync::atomic::Ordering;
 use tokio::time::{timeout, Duration};
 use tracing::{info, warn};
 use super::aggregator_core::ApiAggregator;
+use crate::dto::websocket::{DashboardData, UsStockIndices, CryptoPrice};
 
 impl ApiAggregator {
     /// Fetch dashboard summary v2 - Main method for Layer 2 dashboard data
     /// Returns a focused summary with essential market data
-    /// 
+    ///
     /// force_realtime_refresh: If true, forces refresh of RealTime cached data (crypto prices)
-    pub async fn fetch_dashboard_summary_v2(&self, force_realtime_refresh: bool) -> Result<serde_json::Value> {
+    pub async fn fetch_dashboard_summary_v2(&self, force_realtime_refresh: bool) -> Result<DashboardData> {
         let start_time = std::time::Instant::now();
         self.total_aggregations.fetch_add(1, Ordering::Relaxed);
 
@@ -35,46 +36,21 @@ impl ApiAggregator {
 
         let mut partial_failure = false;
 
-        // Process multi-crypto data (all 7 coins in one result)
-        let mut crypto_prices = std::collections::HashMap::new();
-        match multi_crypto_result {
-            Ok(Ok(prices_map)) => {
-                crypto_prices = prices_map;
-            }
+        // Process multi-crypto data (all 7 coins in one result) - Now strongly-typed!
+        let crypto_prices = match multi_crypto_result {
+            Ok(Ok(prices_map)) => prices_map,
             _ => {
                 partial_failure = true;
                 warn!("Multi-crypto prices fetch failed");
+                std::collections::HashMap::new()
             }
-        }
+        };
 
-        // Helper structure for price data
-        #[derive(Debug, Clone, Copy)]
-        struct CryptoPrice {
-            price_usd: f64,
-            change_24h: f64,
-        }
-
-        impl CryptoPrice {
-            fn from_json(data: &serde_json::Value) -> Self {
-                Self {
-                    price_usd: data["price_usd"].as_f64().unwrap_or(0.0),
-                    change_24h: data["change_24h"].as_f64().unwrap_or(0.0),
-                }
-            }
-
-            fn default() -> Self {
-                Self {
-                    price_usd: 0.0,
-                    change_24h: 0.0,
-                }
-            }
-        }
-
-        // Extract price data once for each symbol
+        // Extract price data once for each symbol - Now directly from CryptoPrice!
         let get_price = |symbol: &str| -> CryptoPrice {
             crypto_prices.get(symbol)
-                .map(CryptoPrice::from_json)
-                .unwrap_or_else(CryptoPrice::default)
+                .copied()
+                .unwrap_or_default()
         };
 
         // Extract individual coin data
@@ -126,16 +102,27 @@ impl ApiAggregator {
             }
         };
 
-        // Process US Stock Indices data
-        let us_indices = match us_indices_result {
-            Ok(Ok(indices_data)) => indices_data["indices"].clone(),
+        // Process US Stock Indices data - Parse strongly-typed structure
+        let us_stock_indices = match us_indices_result {
+            Ok(Ok(indices_data)) => {
+                // Try to parse the nested "indices" field into UsStockIndices
+                match serde_json::from_value::<UsStockIndices>(indices_data["indices"].clone()) {
+                    Ok(parsed) => parsed,
+                    Err(e) => {
+                        warn!("Failed to parse US stock indices: {}. Using empty data.", e);
+                        partial_failure = true;
+                        UsStockIndices::default()
+                    }
+                }
+            }
             _ => {
                 partial_failure = true;
-                serde_json::json!({})
+                UsStockIndices::default()
             }
         };
 
         let duration = start_time.elapsed();
+        let now = chrono::Utc::now().to_rfc3339();
 
         // Update statistics
         if partial_failure {
@@ -146,34 +133,34 @@ impl ApiAggregator {
             info!(duration_ms = duration.as_millis(), "Dashboard summary v2 aggregated successfully");
         }
 
-        // Return focused summary JSON
-        Ok(serde_json::json!({
-            "btc_price_usd": btc_price,
-            "btc_change_24h": btc_change,
-            "eth_price_usd": eth_price,
-            "eth_change_24h": eth_change,
-            "sol_price_usd": sol_price,
-            "sol_change_24h": sol_change,
-            "xrp_price_usd": xrp_price,
-            "xrp_change_24h": xrp_change,
-            "ada_price_usd": ada_price,
-            "ada_change_24h": ada_change,
-            "link_price_usd": link_price,
-            "link_change_24h": link_change,
-            "bnb_price_usd": bnb_price,
-            "bnb_change_24h": bnb_change,
-            "market_cap_usd": market_cap,
-            "volume_24h_usd": volume_24h,
-            "market_cap_change_percentage_24h_usd": market_cap_change,
-            "btc_market_cap_percentage": btc_dominance,
-            "eth_market_cap_percentage": eth_dominance,
-            "fng_value": fng_value,
-            "btc_rsi_14": btc_rsi_14_value,
-            "us_stock_indices": us_indices,
-            "fetch_duration_ms": duration.as_millis() as u64,
-            "partial_failure": partial_failure,
-            "last_updated": chrono::Utc::now().to_rfc3339(),
-            "timestamp": chrono::Utc::now().to_rfc3339()
-        }))
+        // Return strongly-typed DashboardData
+        Ok(DashboardData {
+            btc_price_usd: btc_price,
+            btc_change_24h: btc_change,
+            btc_market_cap_percentage: btc_dominance,
+            btc_rsi_14: btc_rsi_14_value,
+            eth_price_usd: eth_price,
+            eth_change_24h: eth_change,
+            eth_market_cap_percentage: eth_dominance,
+            sol_price_usd: sol_price,
+            sol_change_24h: sol_change,
+            xrp_price_usd: xrp_price,
+            xrp_change_24h: xrp_change,
+            ada_price_usd: ada_price,
+            ada_change_24h: ada_change,
+            link_price_usd: link_price,
+            link_change_24h: link_change,
+            bnb_price_usd: bnb_price,
+            bnb_change_24h: bnb_change,
+            market_cap_usd: market_cap,
+            volume_24h_usd: volume_24h,
+            market_cap_change_percentage_24h_usd: market_cap_change,
+            fng_value,
+            us_stock_indices,
+            fetch_duration_ms: duration.as_millis() as u64,
+            partial_failure,
+            last_updated: now.clone(),
+            timestamp: now,
+        })
     }
 }

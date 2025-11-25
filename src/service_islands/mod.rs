@@ -6,6 +6,7 @@
 pub mod layer1_infrastructure;
 pub mod layer2_external_services;
 pub mod layer3_communication;
+pub mod errors;
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
@@ -13,6 +14,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 use layer1_infrastructure::{CacheSystemIsland, LeaderElectionService};
 use layer2_external_services::ExternalApisIsland;
 use layer3_communication::WebSocketServiceIsland;
+use crate::dto::websocket::DashboardData;
 
 /// WebSocket Service Islands Registry
 ///
@@ -132,33 +134,36 @@ impl ServiceIslands {
     }
 
     /// Fetch market data from External APIs and publish to Redis Streams
-    pub async fn fetch_and_publish_market_data(&self, force_refresh: bool) -> Result<serde_json::Value, anyhow::Error> {
+    pub async fn fetch_and_publish_market_data(&self, force_refresh: bool) -> Result<DashboardData, anyhow::Error> {
         // Fetch data directly from External APIs
         let data = self.external_apis
             .fetch_dashboard_summary_v2(force_refresh)
             .await?;
 
         // Store in cache for main service to read
-        if let Err(e) = self.cache_system.cache_manager()
-            .set_with_strategy("latest_market_data", data.clone(),
-                layer1_infrastructure::cache_system_island::cache_manager::realtime_strategy())
-            .await
-        {
-            eprintln!("⚠️ Failed to cache market data: {}", e);
+        // Serialize DashboardData to JSON Value for cache storage
+        if let Ok(cache_value) = serde_json::to_value(&data) {
+            if let Err(e) = self.cache_system.cache_manager()
+                .set_with_strategy("latest_market_data", cache_value,
+                    layer1_infrastructure::cache_system_island::cache_manager::realtime_strategy())
+                .await
+            {
+                tracing::warn!("Failed to cache market data: {}", e);
+            }
         }
 
         // Publish to Redis Stream for main service
         if let Err(e) = self.publish_to_redis_stream(&data).await {
-            eprintln!("⚠️ Failed to publish to Redis Stream: {}", e);
+            tracing::warn!("Failed to publish to Redis Stream: {}", e);
         }
 
         Ok(data)
     }
 
     /// Publish data to Redis Stream
-    async fn publish_to_redis_stream(&self, data: &serde_json::Value) -> Result<(), anyhow::Error> {
-        // Convert JSON to string for storage in stream
-        let data_str = serde_json::to_string(data)?;
+    async fn publish_to_redis_stream(&self, data: &DashboardData) -> Result<(), anyhow::Error> {
+        // Convert DashboardData to JSON string for storage in stream
+        let data_str = data.to_json_string()?;
 
         // Create stream fields
         let fields = vec![("data".to_string(), data_str)];
@@ -174,16 +179,14 @@ impl ServiceIslands {
     }
 
     /// Broadcast data to all connected WebSocket clients
-    pub async fn broadcast_to_websocket_clients(&self, data: serde_json::Value) -> Result<(), anyhow::Error> {
-        // Wrap data in WebSocket message format with type field
-        let ws_message = serde_json::json!({
-            "type": "dashboard_update",
-            "data": data,
-            "timestamp": chrono::Utc::now().to_rfc3339(),
-            "source": "external_apis"
-        });
+    pub async fn broadcast_to_websocket_clients(&self, data: DashboardData) -> Result<(), anyhow::Error> {
+        // Wrap data in strongly-typed ServerMessage format
+        use crate::dto::websocket::{ServerMessage, DashboardUpdatePayload};
 
-        let data_str = serde_json::to_string(&ws_message)?;
+        let payload = DashboardUpdatePayload::new(data, "external_apis");
+        let server_message = ServerMessage::DashboardUpdate(payload);
+
+        let data_str = server_message.to_json_string()?;
         self.websocket_service.broadcast_service.broadcast(data_str).await;
         Ok(())
     }
@@ -204,8 +207,6 @@ impl ServiceIslands {
     /// Core services (cache, websocket) must be healthy
     /// External APIs being down won't fail the health check (degraded mode)
     pub async fn health_check_detailed(&self) -> (bool, serde_json::Value) {
-        use tracing::warn;
-
         println!("🔍 Performing WebSocket Service Islands health check...");
 
         let cache_system_healthy = self.cache_system.health_check().await;

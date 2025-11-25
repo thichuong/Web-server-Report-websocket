@@ -13,6 +13,12 @@ pub struct BroadcastService {
     pub broadcast_tx: broadcast::Sender<String>,
 }
 
+impl Default for BroadcastService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BroadcastService {
     /// Create a new BroadcastService with a broadcast channel
     pub fn new() -> Self {

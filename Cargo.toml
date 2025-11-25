@@ -95,6 +95,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # gRPC dependencies (optional, for future use)
 tonic = "0.10"        # gRPC framework
 prost = "0.12"        # Protocol Buffers
+thiserror = "2.0.17"
 
 [build-dependencies]
 tonic-build = "0.10"  # Build script for generating gRPC code

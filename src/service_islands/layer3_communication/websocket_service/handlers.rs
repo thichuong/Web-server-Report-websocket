@@ -9,6 +9,12 @@ pub struct WebSocketHandlers {
     // Component state will be added here as we implement lower layers
 }
 
+impl Default for WebSocketHandlers {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WebSocketHandlers {
     /// Create a new WebSocketHandlers
     pub fn new() -> Self {

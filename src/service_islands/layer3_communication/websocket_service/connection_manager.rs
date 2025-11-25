@@ -10,6 +10,12 @@ pub struct ConnectionManager {
     // Component state can be added here as features are implemented
 }
 
+impl Default for ConnectionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConnectionManager {
     /// Create a new ConnectionManager
     pub fn new() -> Self {

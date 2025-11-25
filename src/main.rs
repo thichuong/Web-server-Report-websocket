@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use dotenvy::dotenv;
 use std::{env, net::SocketAddr, sync::Arc, time::Duration};
 use axum::{
@@ -13,6 +14,7 @@ use anyhow::Context;
 
 mod service_islands;
 mod performance;
+mod dto;
 
 use service_islands::ServiceIslands;
 
@@ -238,12 +240,20 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
                 Ok(Some(data)) => {
                     info!("✅ [FOLLOWER] Market data loaded from cache");
 
-                    // Broadcast to all WebSocket clients
-                    if let Err(e) = service_islands.broadcast_to_websocket_clients(data).await {
-                        error!("❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}", e);
-                    } else {
-                        info!("📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients",
-                              service_islands.active_connections());
+                    // Deserialize to DashboardData
+                    match serde_json::from_value(data) {
+                        Ok(dashboard_data) => {
+                            // Broadcast to all WebSocket clients
+                            if let Err(e) = service_islands.broadcast_to_websocket_clients(dashboard_data).await {
+                                error!("❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}", e);
+                            } else {
+                                info!("📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients",
+                                      service_islands.active_connections());
+                            }
+                        }
+                        Err(e) => {
+                            error!("❌ [FOLLOWER] Failed to deserialize cached data: {}", e);
+                        }
                     }
                 }
                 Ok(None) => {

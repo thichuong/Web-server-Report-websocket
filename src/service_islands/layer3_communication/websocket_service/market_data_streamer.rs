@@ -17,6 +17,12 @@ pub struct MarketDataStreamer {
     external_apis: Option<Arc<ExternalApisIsland>>,
 }
 
+impl Default for MarketDataStreamer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MarketDataStreamer {
     /// Create new Market Data Streamer without External APIs dependency
     pub fn new() -> Self {

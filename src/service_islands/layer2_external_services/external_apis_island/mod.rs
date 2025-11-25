@@ -19,6 +19,7 @@ use tracing::info;
 
 use market_data_api::MarketDataApi;
 use api_aggregator::ApiAggregator;
+use crate::dto::websocket::DashboardData;
 
 /// External APIs Island - Main entry point for Layer 2
 ///
@@ -77,9 +78,9 @@ impl ExternalApisIsland {
     }
 
     /// Fetch dashboard summary v2 - Main Layer 2 functionality
-    /// 
+    ///
     /// force_realtime_refresh: If true, forces refresh of RealTime cached data
-    pub async fn fetch_dashboard_summary_v2(&self, force_realtime_refresh: bool) -> Result<serde_json::Value> {
+    pub async fn fetch_dashboard_summary_v2(&self, force_realtime_refresh: bool) -> Result<DashboardData> {
         self.aggregator.fetch_dashboard_summary_v2(force_realtime_refresh).await
     }
 }
