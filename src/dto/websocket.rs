@@ -162,7 +162,7 @@ pub struct MarketUpdatePayload {
 /// Matches the exact structure from Redis stream and `dashboard_aggregator`.
 /// Accepts `snake_case` from Redis (via aliases) and outputs camelCase to frontend.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct DashboardData {
     // BTC data
     #[serde(alias = "btc_price_usd")]

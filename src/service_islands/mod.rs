@@ -182,14 +182,10 @@ impl ServiceIslands {
         // Explicitly construct the JSON payload to ensure correct format
         // This avoids any potential issues with ServerMessage serialization
         // and guarantees the structure expected by the frontend:
-        // {"type": "DashboardUpdate", "payload": {"data": {...}, "timestamp": "...", "source": "..."}}
+        // {"type": "DashboardUpdate", "data": {...}}
         let payload = serde_json::json!({
             "type": "DashboardUpdate",
-            "payload": {
-                "data": data,
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-                "source": "external_apis"
-            }
+            "data": data
         });
 
         let data_str = payload.to_string();
