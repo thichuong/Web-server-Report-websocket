@@ -15,6 +15,8 @@ impl ApiAggregator {
     /// Returns a focused summary with essential market data
     ///
     /// `force_realtime_refresh`: If true, forces refresh of `RealTime` cached data (crypto prices)
+    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::cast_possible_truncation)]
     pub async fn fetch_dashboard_summary_v2(&self, force_realtime_refresh: bool) -> Result<DashboardData> {
         let start_time = std::time::Instant::now();
         self.total_aggregations.fetch_add(1, Ordering::Relaxed);

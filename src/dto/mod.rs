@@ -2,7 +2,6 @@
 ///
 /// This module defines the API contract between the client and server,
 /// providing type-safe message structures for bidirectional communication.
-
 pub mod websocket;
 
 // Re-export commonly used types

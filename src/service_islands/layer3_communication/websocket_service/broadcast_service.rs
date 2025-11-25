@@ -29,6 +29,7 @@ impl BroadcastService {
     }
 
     /// Broadcast a message to all connected WebSocket clients
+    #[allow(clippy::unused_async)]
     pub async fn broadcast(&self, message: String) {
         // Send to all subscribers
         // Errors are ignored as some receivers might have been dropped
@@ -41,6 +42,7 @@ impl BroadcastService {
     }
 
     /// Health check for broadcast service
+    #[allow(clippy::unused_async)]
     pub async fn health_check(&self) -> bool {
         // Verify broadcast service is working
         // Broadcast channels are always healthy unless all receivers dropped

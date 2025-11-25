@@ -46,6 +46,7 @@ impl WebSocketServiceIsland {
     /// Initialize the WebSocket Service Island with External APIs and Cache Optimization
     /// 
     /// Creates all components and establishes communication channels with Layer 2 and cache optimization.
+    #[allow(clippy::unused_async)]
     pub async fn with_external_apis_and_cache(
         _external_apis: Arc<ExternalApisIsland>,
         _cache_system: Arc<crate::service_islands::layer1_infrastructure::cache_system_island::CacheSystemIsland>
@@ -78,6 +79,7 @@ impl WebSocketServiceIsland {
     ///
     /// Note: gRPC client not used in websocket service - uses direct external API access instead
     #[allow(dead_code)]
+    #[allow(clippy::unused_async)]
     pub async fn with_grpc_client_and_cache(
         _layer2_grpc_client: Arc<String>, // Placeholder - not used
         _cache_system: Arc<crate::service_islands::layer1_infrastructure::cache_system_island::CacheSystemIsland>
@@ -142,6 +144,7 @@ impl WebSocketServiceIsland {
     /// This method is no longer used. Market data fetching is now done by
     /// `ServiceIslands.fetch_and_publish_market_data()` which uses `external_apis` directly.
     #[allow(dead_code)]
+    #[allow(clippy::unused_async)]
     pub async fn fetch_market_data(&self, _force_realtime_refresh: bool) -> Result<serde_json::Value> {
         Err(anyhow::anyhow!("fetch_market_data is deprecated - use ServiceIslands.fetch_and_publish_market_data() instead"))
     }

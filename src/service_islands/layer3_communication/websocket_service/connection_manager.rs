@@ -23,6 +23,7 @@ impl ConnectionManager {
     }
 
     /// Health check for connection manager
+    #[allow(clippy::unused_async)]
     pub async fn health_check(&self) -> bool {
         // Connection manager is always healthy (stateless component)
         true

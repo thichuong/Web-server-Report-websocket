@@ -108,7 +108,6 @@ impl MarketDataApi {
                     let delay = std::time::Duration::from_millis(2000 * (2_u64.pow(attempts)));
                     warn!(url = %url, delay_ms = delay.as_millis(), attempt = attempts, max_attempts = max_attempts, "Binance blocking (418), retrying");
                     tokio::time::sleep(delay).await;
-                    continue;
                 }
                 status if status == 429 => {
                     // Rate limiting - implement exponential backoff
@@ -120,7 +119,6 @@ impl MarketDataApi {
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
                     warn!(url = %url, delay_ms = delay.as_millis(), attempt = attempts, max_attempts = max_attempts, "Rate limit (429) hit, retrying");
                     tokio::time::sleep(delay).await;
-                    continue;
                 }
                 status => {
                     return Err(anyhow::anyhow!("API returned status: {status} for URL: {url}"));

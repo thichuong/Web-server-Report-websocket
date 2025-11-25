@@ -92,6 +92,7 @@ pub struct StockIndex {
 /// Uses adjacently-tagged enum format for easy frontend parsing.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "payload")]
+#[allow(dead_code)]
 pub enum ServerMessage {
     /// Welcome message sent immediately upon connection
     Welcome(WelcomePayload),
@@ -100,7 +101,7 @@ pub enum ServerMessage {
     MarketUpdate(MarketUpdatePayload),
 
     /// Full dashboard update with all market data (current implementation)
-    DashboardUpdate(DashboardUpdatePayload),
+    DashboardUpdate(Box<DashboardUpdatePayload>),
 
     /// System health status update
     SystemHealth(SystemHealthPayload),
@@ -126,6 +127,7 @@ impl ServerMessage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct WelcomePayload {
     /// Unique connection identifier
     pub connection_id: String,
@@ -139,6 +141,7 @@ pub struct WelcomePayload {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct MarketUpdatePayload {
     /// Symbol/ticker (e.g., "BTC", "ETH", "SOL")
     pub symbol: String,
@@ -248,6 +251,7 @@ impl DashboardData {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct DashboardUpdatePayload {
     /// Complete dashboard data (strongly-typed structure)
     /// Aligns with current `dashboard_summary_v2` implementation
@@ -274,6 +278,7 @@ impl DashboardUpdatePayload {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct SystemHealthPayload {
     /// Overall system status
     pub status: HealthStatus,
@@ -288,6 +293,7 @@ pub struct SystemHealthPayload {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[allow(dead_code)]
 pub enum HealthStatus {
     Healthy,
     Degraded,
@@ -296,6 +302,7 @@ pub enum HealthStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct LayerHealth {
     /// Layer 1: Infrastructure (cache, coordination)
     pub infrastructure: bool,
@@ -309,6 +316,7 @@ pub struct LayerHealth {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct ErrorPayload {
     /// Error code (use `ERROR_CODE`_* constants)
     pub code: String,
@@ -322,6 +330,7 @@ pub struct ErrorPayload {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct AckPayload {
     /// Action that was acknowledged ("subscribe" or "unsubscribe")
     pub action: String,
@@ -492,7 +501,7 @@ mod tests {
         assert_eq!(payload.data.btc_price_usd, 96062.47);
 
         // Wrap in ServerMessage and serialize
-        let msg = ServerMessage::DashboardUpdate(payload);
+        let msg = ServerMessage::DashboardUpdate(Box::new(payload));
         let json = msg.to_json_string().unwrap();
 
         // Should be camelCase for frontend

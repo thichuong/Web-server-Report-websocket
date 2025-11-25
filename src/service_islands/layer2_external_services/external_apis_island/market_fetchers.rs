@@ -110,7 +110,6 @@ impl MarketDataApi {
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
                     warn!(delay_ms = delay.as_millis(), attempt = attempts, max_attempts = max_attempts, "CoinMarketCap global API rate limit (429), retrying");
                     tokio::time::sleep(delay).await;
-                    continue;
                 }
                 status => {
                     return Err(anyhow::anyhow!("CoinMarketCap global API returned status: {status}"));
@@ -201,7 +200,6 @@ impl MarketDataApi {
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
                     warn!(delay_ms = delay.as_millis(), attempt = attempts, max_attempts = max_attempts, "RSI API rate limit (429), retrying");
                     tokio::time::sleep(delay).await;
-                    continue;
                 }
                 status => {
                     return Err(anyhow::anyhow!("RSI API returned status: {status}"));
@@ -234,7 +232,7 @@ impl MarketDataApi {
             .ok_or_else(|| anyhow::anyhow!("Finnhub API key not provided"))?;
 
         // Define the indices we want to fetch (using ETFs as proxies for free tier)
-        let indices = vec![
+        let indices = [
             ("DIA", "SPDR Dow Jones Industrial Average ETF"),  // DJIA proxy
             ("SPY", "SPDR S&P 500 ETF Trust"),                // S&P 500 proxy
             ("QQQM", "INVESCO NASDAQ 100 ETF"),                      // Nasdaq 100 proxy
@@ -324,7 +322,6 @@ impl MarketDataApi {
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
                     warn!(symbol = %symbol, delay_ms = delay.as_millis(), attempt = attempts, max_attempts = max_attempts, "Finnhub rate limit (429), retrying");
                     tokio::time::sleep(delay).await;
-                    continue;
                 }
                 status => {
                     return Err(anyhow::anyhow!("Finnhub API returned status {status} for {symbol}"));
@@ -337,6 +334,7 @@ impl MarketDataApi {
 
     /// Get API statistics
     #[allow(dead_code)]
+    #[allow(clippy::cast_precision_loss)]
     pub fn get_api_stats(&self) -> serde_json::Value {
         let total_calls = self.api_calls_count.load(std::sync::atomic::Ordering::Relaxed);
         let successful_calls = self.successful_calls.load(std::sync::atomic::Ordering::Relaxed);

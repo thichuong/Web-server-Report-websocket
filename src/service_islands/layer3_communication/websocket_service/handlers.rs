@@ -24,6 +24,7 @@ impl WebSocketHandlers {
     }
     
     /// Health check for WebSocket handlers
+    #[allow(clippy::unused_async)]
     pub async fn health_check(&self) -> bool {
         // Stateless component - always healthy
         // TODO: Add actual validation when state is added

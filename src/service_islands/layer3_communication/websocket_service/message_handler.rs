@@ -25,6 +25,7 @@ impl MessageHandler {
     }
     
     /// Health check for message handler
+    #[allow(clippy::unused_async)]
     pub async fn health_check(&self) -> bool {
         // Stateless component - always healthy
         // TODO: Add actual validation when state is added

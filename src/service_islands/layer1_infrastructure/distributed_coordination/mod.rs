@@ -41,7 +41,6 @@
 ///     fetch_api().await?;
 /// }
 /// ```
-
 pub mod leader_election;
 
 pub use leader_election::LeaderElectionService;

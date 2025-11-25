@@ -38,6 +38,7 @@ impl MarketDataApi {
     }
 
     /// Create a new `MarketDataApi` with all API keys
+    #[allow(clippy::unused_async)]
     pub async fn with_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
