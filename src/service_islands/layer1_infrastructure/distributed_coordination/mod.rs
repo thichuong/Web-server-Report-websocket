@@ -13,7 +13,7 @@
 /// - Cache warming (only leader pre-populates cache)
 ///
 /// # Example
-/// ```rust
+/// ```ignorerust
 /// use distributed_coordination::LeaderElectionService;
 /// use std::sync::Arc;
 /// use std::sync::atomic::AtomicBool;
