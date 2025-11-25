@@ -1,0 +1,22 @@
+warning: method `to_json_string` is never used
+   --> src/dto/websocket.rs:118:12
+    |
+116 | impl ServerMessage {
+    | ------------------ method in this implementation
+117 |     /// Serialize to JSON string for sen...
+118 |     pub fn to_json_string(&self) -> Resu...
+    |            ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `new` is never used
+   --> src/dto/websocket.rs:269:12
+    |
+267 | impl DashboardUpdatePayload {
+    | --------------------------- associated function in this implementation
+268 |     /// Create a new dashboard update fr...
+269 |     pub fn new(data: DashboardData, sour...
+    |            ^^^
+
+warning: `web-server-report-websocket` (bin "web-server-report-websocket") generated 2 warnings
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.09s

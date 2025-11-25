@@ -179,16 +179,12 @@ impl ServiceIslands {
 
     /// Broadcast data to all connected WebSocket clients
     pub async fn broadcast_to_websocket_clients(&self, data: DashboardData) -> Result<(), anyhow::Error> {
-        // Explicitly construct the JSON payload to ensure correct format
-        // This avoids any potential issues with ServerMessage serialization
-        // and guarantees the structure expected by the frontend:
-        // {"type": "DashboardUpdate", "data": {...}}
-        let payload = serde_json::json!({
-            "type": "DashboardUpdate",
-            "data": data
-        });
-
-        let data_str = payload.to_string();
+        // Use strongly-typed ServerMessage for consistency and type safety
+        // This produces {"type": "DashboardUpdate", "data": ..., "timestamp": ..., "source": ...}
+        let payload = crate::dto::websocket::DashboardUpdatePayload::new(data, "external_apis");
+        let message = crate::dto::websocket::ServerMessage::DashboardUpdate(Box::new(payload));
+        
+        let data_str = message.to_json_string()?;
         self.websocket_service.broadcast_service.broadcast(data_str).await;
         Ok(())
     }

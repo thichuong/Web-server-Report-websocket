@@ -1,0 +1,108 @@
+   Compiling web-server-report-websocket v0.1.0 (/home/tchuong/Màn hình nền/Code-Server-Report-Crypto-AI/Web-server-Report-websocket)
+error[E0422]: cannot find struct, variant or union type `SubscribePayload` in this scope
+   --> src/dto/websocket.rs:357:44
+    |
+357 |         let msg = ClientMessage::Subscribe(SubscribePayload {
+    |                                            ^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `ERROR_CODE_INVALID_TOPIC` in this scope
+   --> src/dto/websocket.rs:388:44
+    |
+388 |         let msg = ServerMessage::new_error(ERROR_CODE_INVALID_TOPIC, "Invalid topic");
+    |                                            ^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `ERROR_CODE_INVALID_TOPIC` in this scope
+   --> src/dto/websocket.rs:392:31
+    |
+392 |         assert!(json.contains(ERROR_CODE_INVALID_TOPIC));
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0599]: no method named `is_leader` found for struct `leader_election::LeaderElectionService` in the current scope
+   --> src/service_islands/layer1_infrastructure/distributed_coordination/leader_election.rs:304:25
+    |
+ 23 | pub struct LeaderElectionService {
+    | -------------------------------- method `is_leader` not found for this struct
+...
+304 |         assert!(service.is_leader().await.unwrap());
+    |                         ^^^^^^^^^ method not found in `leader_election::LeaderElectionService`
+
+error[E0599]: no method named `is_leader` found for struct `leader_election::LeaderElectionService` in the current scope
+   --> src/service_islands/layer1_infrastructure/distributed_coordination/leader_election.rs:313:26
+    |
+ 23 | pub struct LeaderElectionService {
+    | -------------------------------- method `is_leader` not found for this struct
+...
+313 |         assert!(!service.is_leader().await.unwrap());
+    |                          ^^^^^^^^^ method not found in `leader_election::LeaderElectionService`
+
+error[E0433]: failed to resolve: use of undeclared type `ClientMessage`
+   --> src/dto/websocket.rs:357:19
+    |
+357 |         let msg = ClientMessage::Subscribe(SubscribePayload {
+    |                   ^^^^^^^^^^^^^ use of undeclared type `ClientMessage`
+
+error[E0433]: failed to resolve: use of undeclared type `ClientMessage`
+   --> src/dto/websocket.rs:368:19
+    |
+368 |         let msg = ClientMessage::Heartbeat;
+    |                   ^^^^^^^^^^^^^ use of undeclared type `ClientMessage`
+
+error[E0433]: failed to resolve: use of undeclared type `ClientMessage`
+   --> src/dto/websocket.rs:376:19
+    |
+376 |         let msg = ClientMessage::from_json_str(json).unwrap();
+    |                   ^^^^^^^^^^^^^ use of undeclared type `ClientMessage`
+
+error[E0599]: no variant or associated item named `new_error` found for enum `websocket::ServerMessage` in the current scope
+   --> src/dto/websocket.rs:388:34
+    |
+ 96 | pub enum ServerMessage {
+    | ---------------------- variant or associated item `new_error` not found for this enum
+...
+388 |         let msg = ServerMessage::new_error(ERROR_CODE_INVALID_TOPIC, "Invalid topic");
+    |                                  ^^^^^^^^^ variant or associated item not found in `websocket::ServerMessage`
+
+error[E0599]: no variant or associated item named `new_welcome` found for enum `websocket::ServerMessage` in the current scope
+   --> src/dto/websocket.rs:398:34
+    |
+ 96 | pub enum ServerMessage {
+    | ---------------------- variant or associated item `new_welcome` not found for this enum
+...
+398 |         let msg = ServerMessage::new_welcome("conn-123".to_string(), "1.0.0");
+    |                                  ^^^^^^^^^^^ variant or associated item not found in `websocket::ServerMessage`
+
+error[E0599]: no function or associated item named `from_json_str` found for struct `websocket::DashboardData` in the current scope
+   --> src/dto/websocket.rs:454:45
+    |
+170 | pub struct DashboardData {
+    | ------------------------ function or associated item `from_json_str` not found for this struct
+...
+454 |         let dashboard_data = DashboardData::from_json_str(redis_json).unwrap();
+    |                                             ^^^^^^^^^^^^^ function or associated item not found in `websocket::DashboardData`
+
+error[E0599]: no function or associated item named `from_json_str` found for struct `websocket::DashboardUpdatePayload` in the current scope
+   --> src/dto/websocket.rs:499:47
+    |
+256 | pub struct DashboardUpdatePayload {
+    | --------------------------------- function or associated item `from_json_str` not found for this struct
+...
+499 |         let payload = DashboardUpdatePayload::from_json_str(redis_json, "external_apis").unwrap();
+    |                                               ^^^^^^^^^^^^^ function or associated item not found in `websocket::DashboardUpdatePayload`
+    |
+note: if you're trying to build a new `websocket::DashboardUpdatePayload`, consider using `websocket::DashboardUpdatePayload::new` which returns `websocket::DashboardUpdatePayload`
+   --> src/dto/websocket.rs:271:5
+    |
+271 |     pub fn new(data: DashboardData, source: &str) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0433]: failed to resolve: use of undeclared type `ClientMessage`
+   --> src/dto/websocket.rs:379:13
+    |
+379 |             ClientMessage::Subscribe(payload) => {
+    |             ^^^^^^^^^^^^^ use of undeclared type `ClientMessage`
+
+Some errors have detailed explanations: E0422, E0425, E0433, E0599.
+For more information about an error, try `rustc --explain E0422`.
+error: could not compile `web-server-report-websocket` (lib test) due to 13 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `web-server-report-websocket` (bin "web-server-report-websocket" test) due to 13 previous errors

@@ -1,0 +1,2 @@
+    Checking web-server-report-websocket v0.1.0 (/home/tchuong/Màn hình nền/Code-Server-Report-Crypto-AI/Web-server-Report-websocket)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 1.66s
