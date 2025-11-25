@@ -92,7 +92,7 @@ pub enum DataProcessingError {
     MissingData(String),
 }
 
-/// Conversion from reqwest::Error to ExternalApiError
+/// Conversion from `reqwest::Error` to `ExternalApiError`
 impl From<reqwest::Error> for ExternalApiError {
     fn from(err: reqwest::Error) -> Self {
         ExternalApiError::RequestFailed {

@@ -26,18 +26,18 @@ pub struct MarketDataApi {
 }
 
 impl MarketDataApi {
-    /// Create a new MarketDataApi
+    /// Create a new `MarketDataApi`
     #[allow(dead_code)]
     pub async fn new(taapi_secret: String) -> Result<Self> {
         Self::with_cmc_key(taapi_secret, None).await
     }
 
-    /// Create a new MarketDataApi with CoinMarketCap API key
+    /// Create a new `MarketDataApi` with `CoinMarketCap` API key
     pub async fn with_cmc_key(taapi_secret: String, cmc_api_key: Option<String>) -> Result<Self> {
         Self::with_all_keys(taapi_secret, cmc_api_key, None).await
     }
 
-    /// Create a new MarketDataApi with all API keys
+    /// Create a new `MarketDataApi` with all API keys
     pub async fn with_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
@@ -63,7 +63,7 @@ impl MarketDataApi {
     /// Health check for Market Data API
     pub async fn health_check(&self) -> bool {
         match self.test_api_connectivity().await {
-            Ok(_) => {
+            Ok(()) => {
                 info!("Market Data API connectivity test passed");
                 true
             }

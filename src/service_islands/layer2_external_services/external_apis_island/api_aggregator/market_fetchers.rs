@@ -11,7 +11,7 @@ use super::aggregator_core::ApiAggregator;
 impl ApiAggregator {
     /// Fetch global data with type-safe automatic caching
     ///
-    /// ✨ NEW: Uses get_or_compute_typed() for automatic caching
+    /// ✨ NEW: Uses `get_or_compute_typed()` for automatic caching
     pub async fn fetch_global_with_cache(&self) -> Result<serde_json::Value> {
         if let Some(ref cache) = self.cache_system {
             let market_api = Arc::clone(&self.market_api);
@@ -35,7 +35,7 @@ impl ApiAggregator {
 
     /// Fetch Fear & Greed with type-safe automatic caching
     ///
-    /// ✨ NEW: Uses get_or_compute_typed() for automatic caching
+    /// ✨ NEW: Uses `get_or_compute_typed()` for automatic caching
     pub async fn fetch_fng_with_cache(&self) -> Result<serde_json::Value> {
         if let Some(ref cache) = self.cache_system {
             let market_api = Arc::clone(&self.market_api);
@@ -59,7 +59,7 @@ impl ApiAggregator {
 
     /// Fetch RSI with type-safe automatic caching
     ///
-    /// ✨ NEW: Uses get_or_compute_typed() for automatic caching
+    /// ✨ NEW: Uses `get_or_compute_typed()` for automatic caching
     pub async fn fetch_btc_rsi_14_with_cache(&self) -> Result<serde_json::Value> {
         if let Some(ref cache) = self.cache_system {
             let market_api = Arc::clone(&self.market_api);
@@ -83,7 +83,7 @@ impl ApiAggregator {
 
     /// Fetch US Stock Indices with type-safe automatic caching
     ///
-    /// ✨ NEW: Uses get_or_compute_typed() for automatic caching
+    /// ✨ NEW: Uses `get_or_compute_typed()` for automatic caching
     pub async fn fetch_us_indices_with_cache(&self) -> Result<serde_json::Value> {
         if let Some(ref cache) = self.cache_system {
             let market_api = Arc::clone(&self.market_api);

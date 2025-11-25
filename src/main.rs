@@ -64,7 +64,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .parse()
         .context("PORT must be a valid number")?;
 
-    let addr: SocketAddr = format!("{}:{}", host, port)
+    let addr: SocketAddr = format!("{host}:{port}")
         .parse()
         .context("HOST and PORT must form a valid address")?;
 
@@ -291,10 +291,10 @@ async fn shutdown_signal() {
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        _ = ctrl_c => {
+        () = ctrl_c => {
             info!("🛑 Received Ctrl+C, shutting down gracefully...");
         },
-        _ = terminate => {
+        () = terminate => {
             info!("🛑 Received SIGTERM, shutting down gracefully...");
         },
     }

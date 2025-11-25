@@ -23,14 +23,14 @@ use crate::dto::websocket::DashboardData;
 
 /// External APIs Island - Main entry point for Layer 2
 ///
-/// Combines MarketDataApi and ApiAggregator for comprehensive external API management.
+/// Combines `MarketDataApi` and `ApiAggregator` for comprehensive external API management.
 pub struct ExternalApisIsland {
     pub market_api: Arc<MarketDataApi>,
     pub aggregator: Arc<ApiAggregator>,
 }
 
 impl ExternalApisIsland {
-    /// Create a new ExternalApisIsland with cache system
+    /// Create a new `ExternalApisIsland` with cache system
     pub async fn with_cache_and_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
@@ -42,8 +42,8 @@ impl ExternalApisIsland {
         // Initialize Market Data API (clone API keys as they're needed for aggregator too)
         let market_api = Arc::new(MarketDataApi::with_all_keys(
             taapi_secret.clone(),
-            cmc_api_key.as_ref().cloned(),
-            finnhub_api_key.as_ref().cloned()
+            cmc_api_key.clone(),
+            finnhub_api_key.clone()
         ).await?);
 
         // Initialize API Aggregator (move the original values)
@@ -79,7 +79,7 @@ impl ExternalApisIsland {
 
     /// Fetch dashboard summary v2 - Main Layer 2 functionality
     ///
-    /// force_realtime_refresh: If true, forces refresh of RealTime cached data
+    /// `force_realtime_refresh`: If true, forces refresh of `RealTime` cached data
     pub async fn fetch_dashboard_summary_v2(&self, force_realtime_refresh: bool) -> Result<DashboardData> {
         self.aggregator.fetch_dashboard_summary_v2(force_realtime_refresh).await
     }

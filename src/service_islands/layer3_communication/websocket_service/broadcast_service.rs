@@ -20,7 +20,7 @@ impl Default for BroadcastService {
 }
 
 impl BroadcastService {
-    /// Create a new BroadcastService with a broadcast channel
+    /// Create a new `BroadcastService` with a broadcast channel
     pub fn new() -> Self {
         let (broadcast_tx, _) = broadcast::channel(1000);
         Self {

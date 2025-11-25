@@ -2,7 +2,7 @@
 //
 // This module contains all API URL constants used by the market data API.
 
-/// API URLs - extracted from existing data_service.rs with cache-friendly grouping
+/// API URLs - extracted from existing `data_service.rs` with cache-friendly grouping
 
 // Binance APIs (Primary)
 // Multi-symbol endpoint - fetches all crypto prices in a single request (OPTIMIZED)

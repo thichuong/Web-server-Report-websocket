@@ -1,6 +1,6 @@
 //! API Aggregator Core Component
 //!
-//! This module contains the core ApiAggregator struct and its constructor methods.
+//! This module contains the core `ApiAggregator` struct and its constructor methods.
 
 use reqwest::Client;
 use anyhow::Result;
@@ -27,18 +27,18 @@ pub struct ApiAggregator {
 }
 
 impl ApiAggregator {
-    /// Create a new ApiAggregator
+    /// Create a new `ApiAggregator`
     #[allow(dead_code)]
     pub async fn new(taapi_secret: String) -> Result<Self> {
         Self::with_cmc_key(taapi_secret, None).await
     }
 
-    /// Create a new ApiAggregator with CoinMarketCap support
+    /// Create a new `ApiAggregator` with `CoinMarketCap` support
     pub async fn with_cmc_key(taapi_secret: String, cmc_api_key: Option<String>) -> Result<Self> {
         Self::with_all_keys(taapi_secret, cmc_api_key, None).await
     }
 
-    /// Create a new ApiAggregator with all API keys
+    /// Create a new `ApiAggregator` with all API keys
     pub async fn with_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
@@ -62,13 +62,13 @@ impl ApiAggregator {
         })
     }
 
-    /// Create ApiAggregator with cache system
+    /// Create `ApiAggregator` with cache system
     #[allow(dead_code)]
     pub async fn with_cache(taapi_secret: String, cache_system: Arc<CacheSystemIsland>) -> Result<Self> {
         Self::with_cache_and_cmc(taapi_secret, None, cache_system).await
     }
 
-    /// Create ApiAggregator with cache system and CoinMarketCap support
+    /// Create `ApiAggregator` with cache system and `CoinMarketCap` support
     pub async fn with_cache_and_cmc(
         taapi_secret: String,
         cmc_api_key: Option<String>,
@@ -77,7 +77,7 @@ impl ApiAggregator {
         Self::with_cache_and_all_keys(taapi_secret, cmc_api_key, None, cache_system).await
     }
 
-    /// Create ApiAggregator with cache system and all API keys
+    /// Create `ApiAggregator` with cache system and all API keys
     pub async fn with_cache_and_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
@@ -93,7 +93,7 @@ impl ApiAggregator {
     pub async fn health_check(&self) -> bool {
         // Test that we can coordinate API calls
         match self.test_aggregation().await {
-            Ok(_) => {
+            Ok(()) => {
                 info!("API Aggregator coordination test passed");
                 true
             }

@@ -12,12 +12,12 @@ use crate::dto::websocket::CryptoPrice;
 impl ApiAggregator {
     /// Fetch all crypto prices with type-safe automatic caching
     ///
-    /// ✨ NEW: Uses get_or_compute_typed() for automatic caching
+    /// ✨ NEW: Uses `get_or_compute_typed()` for automatic caching
     ///
-    /// Returns HashMap with coin symbols as keys: BTC, ETH, SOL, XRP, ADA, LINK, BNB
-    /// Each value is a strongly-typed CryptoPrice with price_usd and change_24h
+    /// Returns `HashMap` with coin symbols as keys: BTC, ETH, SOL, XRP, ADA, LINK, BNB
+    /// Each value is a strongly-typed `CryptoPrice` with `price_usd` and `change_24h`
     ///
-    /// force_refresh: If true, bypasses cache and forces API fetch, then updates cache
+    /// `force_refresh`: If true, bypasses cache and forces API fetch, then updates cache
     pub async fn fetch_all_crypto_prices_with_cache(&self, force_refresh: bool) -> Result<HashMap<String, CryptoPrice>> {
         let cache_key = "multi_crypto_prices_realtime";
 

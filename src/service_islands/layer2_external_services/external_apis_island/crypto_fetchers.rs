@@ -6,7 +6,7 @@ impl MarketDataApi {
     /// Fetch multiple crypto prices in a single Binance API call (OPTIMIZED)
     /// 
     /// Fetches BTC, ETH, SOL, XRP, ADA, LINK, BNB prices in one request
-    /// Returns HashMap<Symbol, (price_usd, change_24h)>
+    /// Returns `HashMap`<Symbol, (`price_usd`, `change_24h`)>
     pub async fn fetch_multi_crypto_prices(&self) -> Result<HashMap<String, (f64, f64)>> {
         self.record_api_call();
 
@@ -69,8 +69,7 @@ impl MarketDataApi {
         for (coin, (price, _)) in &prices {
             if *price <= 0.0 {
                 return Err(anyhow::anyhow!(
-                    "Binance {} price validation failed: price={}",
-                    coin, price
+                    "Binance {coin} price validation failed: price={price}"
                 ));
             }
         }
@@ -103,7 +102,7 @@ impl MarketDataApi {
                     // 418 I'm a teapot - Binance uses this for rate limiting/blocking
                     attempts += 1;
                     if attempts >= max_attempts {
-                        return Err(anyhow::anyhow!("Binance blocked request (418 I'm a teapot) after {} attempts for URL: {}. This usually means rate limiting or IP blocking.", max_attempts, url));
+                        return Err(anyhow::anyhow!("Binance blocked request (418 I'm a teapot) after {max_attempts} attempts for URL: {url}. This usually means rate limiting or IP blocking."));
                     }
 
                     let delay = std::time::Duration::from_millis(2000 * (2_u64.pow(attempts)));
@@ -115,7 +114,7 @@ impl MarketDataApi {
                     // Rate limiting - implement exponential backoff
                     attempts += 1;
                     if attempts >= max_attempts {
-                        return Err(anyhow::anyhow!("Rate limit exceeded after {} attempts for URL: {}", max_attempts, url));
+                        return Err(anyhow::anyhow!("Rate limit exceeded after {max_attempts} attempts for URL: {url}"));
                     }
 
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
@@ -124,11 +123,11 @@ impl MarketDataApi {
                     continue;
                 }
                 status => {
-                    return Err(anyhow::anyhow!("API returned status: {} for URL: {}", status, url));
+                    return Err(anyhow::anyhow!("API returned status: {status} for URL: {url}"));
                 }
             }
         }
 
-        Err(anyhow::anyhow!("Max retry attempts reached for URL: {}", url))
+        Err(anyhow::anyhow!("Max retry attempts reached for URL: {url}"))
     }
 }

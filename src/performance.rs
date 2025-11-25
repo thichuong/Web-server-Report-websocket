@@ -16,7 +16,7 @@ pub static OPTIMIZED_HTTP_CLIENT: LazyLock<Client> = LazyLock::new(|| {
         .connect_timeout(Duration::from_secs(10))
         .build()
         .unwrap_or_else(|e| {
-            eprintln!("⚠️ Failed to create optimized HTTP client: {}, using default", e);
+            eprintln!("⚠️ Failed to create optimized HTTP client: {e}, using default");
             Client::new()
         })
 });

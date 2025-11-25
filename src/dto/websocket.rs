@@ -102,7 +102,7 @@ pub struct CryptoPrice {
 }
 
 impl CryptoPrice {
-    /// Create a new CryptoPrice
+    /// Create a new `CryptoPrice`
     pub fn new(price_usd: f64, change_24h: f64) -> Self {
         Self {
             price_usd,
@@ -187,7 +187,7 @@ pub enum ClientMessage {
 }
 
 impl ClientMessage {
-    /// Parse a ClientMessage from a JSON string
+    /// Parse a `ClientMessage` from a JSON string
     ///
     /// # Example
     /// ```
@@ -284,7 +284,7 @@ impl ServerMessage {
 #[serde(rename_all = "camelCase")]
 pub struct SubscribePayload {
     /// List of topics/symbols to subscribe to
-    /// Examples: ["BTC", "ETH", "MarketStats", "SystemHealth"]
+    /// Examples: ["BTC", "ETH", "`MarketStats`", "`SystemHealth`"]
     pub topics: Vec<String>,
 }
 
@@ -334,8 +334,8 @@ pub struct MarketUpdatePayload {
 
 /// Strongly-typed dashboard data structure
 ///
-/// Matches the exact structure from Redis stream and dashboard_aggregator.
-/// Accepts snake_case from Redis (via aliases) and outputs camelCase to frontend.
+/// Matches the exact structure from Redis stream and `dashboard_aggregator`.
+/// Accepts `snake_case` from Redis (via aliases) and outputs camelCase to frontend.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DashboardData {
@@ -436,7 +436,7 @@ impl DashboardData {
 #[serde(rename_all = "camelCase")]
 pub struct DashboardUpdatePayload {
     /// Complete dashboard data (strongly-typed structure)
-    /// Aligns with current dashboard_summary_v2 implementation
+    /// Aligns with current `dashboard_summary_v2` implementation
     pub data: DashboardData,
 
     /// Timestamp (RFC3339 format)
@@ -447,7 +447,7 @@ pub struct DashboardUpdatePayload {
 }
 
 impl DashboardUpdatePayload {
-    /// Create a new dashboard update from DashboardData
+    /// Create a new dashboard update from `DashboardData`
     pub fn new(data: DashboardData, source: &str) -> Self {
         Self {
             data,
@@ -507,7 +507,7 @@ pub struct LayerHealth {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorPayload {
-    /// Error code (use ERROR_CODE_* constants)
+    /// Error code (use `ERROR_CODE`_* constants)
     pub code: String,
 
     /// Human-readable error message

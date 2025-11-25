@@ -14,7 +14,7 @@ impl ApiAggregator {
     /// Fetch dashboard summary v2 - Main method for Layer 2 dashboard data
     /// Returns a focused summary with essential market data
     ///
-    /// force_realtime_refresh: If true, forces refresh of RealTime cached data (crypto prices)
+    /// `force_realtime_refresh`: If true, forces refresh of `RealTime` cached data (crypto prices)
     pub async fn fetch_dashboard_summary_v2(&self, force_realtime_refresh: bool) -> Result<DashboardData> {
         let start_time = std::time::Instant::now();
         self.total_aggregations.fetch_add(1, Ordering::Relaxed);
@@ -37,13 +37,10 @@ impl ApiAggregator {
         let mut partial_failure = false;
 
         // Process multi-crypto data (all 7 coins in one result) - Now strongly-typed!
-        let crypto_prices = match multi_crypto_result {
-            Ok(Ok(prices_map)) => prices_map,
-            _ => {
-                partial_failure = true;
-                warn!("Multi-crypto prices fetch failed");
-                std::collections::HashMap::new()
-            }
+        let crypto_prices = if let Ok(Ok(prices_map)) = multi_crypto_result { prices_map } else {
+            partial_failure = true;
+            warn!("Multi-crypto prices fetch failed");
+            std::collections::HashMap::new()
         };
 
         // Extract price data once for each symbol - Now directly from CryptoPrice!
@@ -70,55 +67,43 @@ impl ApiAggregator {
         let (bnb_price, bnb_change) = (bnb.price_usd, bnb.change_24h);
 
         // Process global data
-        let (market_cap, volume_24h, market_cap_change, btc_dominance, eth_dominance) = match global_result {
-            Ok(Ok(global_data)) => (
-                global_data["market_cap"].as_f64().unwrap_or(0.0),
-                global_data["volume_24h"].as_f64().unwrap_or(0.0),
-                global_data["market_cap_change_percentage_24h_usd"].as_f64().unwrap_or(0.0),
-                global_data["btc_market_cap_percentage"].as_f64().unwrap_or(0.0),
-                global_data["eth_market_cap_percentage"].as_f64().unwrap_or(0.0)
-            ),
-            _ => {
-                partial_failure = true;
-                (0.0, 0.0, 0.0, 0.0, 0.0)
-            }
+        let (market_cap, volume_24h, market_cap_change, btc_dominance, eth_dominance) = if let Ok(Ok(global_data)) = global_result { (
+            global_data["market_cap"].as_f64().unwrap_or(0.0),
+            global_data["volume_24h"].as_f64().unwrap_or(0.0),
+            global_data["market_cap_change_percentage_24h_usd"].as_f64().unwrap_or(0.0),
+            global_data["btc_market_cap_percentage"].as_f64().unwrap_or(0.0),
+            global_data["eth_market_cap_percentage"].as_f64().unwrap_or(0.0)
+        ) } else {
+            partial_failure = true;
+            (0.0, 0.0, 0.0, 0.0, 0.0)
         };
 
         // Process FNG data
-        let fng_value = match fng_result {
-            Ok(Ok(fng_data)) => fng_data["value"].as_u64().unwrap_or(50) as u32,
-            _ => {
-                partial_failure = true;
-                50
-            }
+        let fng_value = if let Ok(Ok(fng_data)) = fng_result { fng_data["value"].as_u64().unwrap_or(50) as u32 } else {
+            partial_failure = true;
+            50
         };
 
         // Process RSI data
-        let btc_rsi_14_value = match btc_rsi_14_result {
-            Ok(Ok(btc_rsi_14_data)) => btc_rsi_14_data["value"].as_f64().unwrap_or(50.0),
-            _ => {
-                partial_failure = true;
-                50.0
-            }
+        let btc_rsi_14_value = if let Ok(Ok(btc_rsi_14_data)) = btc_rsi_14_result { btc_rsi_14_data["value"].as_f64().unwrap_or(50.0) } else {
+            partial_failure = true;
+            50.0
         };
 
         // Process US Stock Indices data - Parse strongly-typed structure
-        let us_stock_indices = match us_indices_result {
-            Ok(Ok(indices_data)) => {
-                // Try to parse the nested "indices" field into UsStockIndices
-                match serde_json::from_value::<UsStockIndices>(indices_data["indices"].clone()) {
-                    Ok(parsed) => parsed,
-                    Err(e) => {
-                        warn!("Failed to parse US stock indices: {}. Using empty data.", e);
-                        partial_failure = true;
-                        UsStockIndices::default()
-                    }
+        let us_stock_indices = if let Ok(Ok(indices_data)) = us_indices_result {
+            // Try to parse the nested "indices" field into UsStockIndices
+            match serde_json::from_value::<UsStockIndices>(indices_data["indices"].clone()) {
+                Ok(parsed) => parsed,
+                Err(e) => {
+                    warn!("Failed to parse US stock indices: {}. Using empty data.", e);
+                    partial_failure = true;
+                    UsStockIndices::default()
                 }
             }
-            _ => {
-                partial_failure = true;
-                UsStockIndices::default()
-            }
+        } else {
+            partial_failure = true;
+            UsStockIndices::default()
         };
 
         let duration = start_time.elapsed();

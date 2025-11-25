@@ -41,7 +41,7 @@ impl LeaderElectionService {
     /// Create a new leader election service
     ///
     /// # Arguments
-    /// * `redis_url` - Redis connection URL (e.g., "redis://127.0.0.1:6379")
+    /// * `redis_url` - Redis connection URL (e.g., "<redis://127.0.0.1:6379>")
     /// * `node_id` - Unique identifier for this node instance
     ///
     /// # Example
@@ -227,9 +227,9 @@ impl LeaderElectionService {
     /// Start leadership monitoring loop
     ///
     /// This spawns a background task that:
-    /// - Tries to acquire leadership every heartbeat_interval
+    /// - Tries to acquire leadership every `heartbeat_interval`
     /// - If leader, renews the lock periodically
-    /// - Updates the is_leader_flag atomically
+    /// - Updates the `is_leader_flag` atomically
     ///
     /// # Arguments
     /// * `is_leader_flag` - Shared atomic boolean that tracks leadership status

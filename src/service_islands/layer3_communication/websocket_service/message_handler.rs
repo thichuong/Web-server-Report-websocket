@@ -17,7 +17,7 @@ impl Default for MessageHandler {
 }
 
 impl MessageHandler {
-    /// Create a new MessageHandler
+    /// Create a new `MessageHandler`
     pub fn new() -> Self {
         Self {
             // Initialize component

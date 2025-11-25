@@ -42,7 +42,7 @@ pub struct WebSocketServiceIsland {
     /// Market data streaming component
     pub market_data_streamer: Arc<MarketDataStreamer>,
     /// Broadcast transmitter for real-time updates
-    /// Note: Used by broadcast_service for WebSocket message broadcasting
+    /// Note: Used by `broadcast_service` for WebSocket message broadcasting
     pub broadcast_tx: broadcast::Sender<String>,
 }
 
@@ -149,10 +149,10 @@ impl WebSocketServiceIsland {
         }
     }
 
-    /// Fetch market data (DEPRECATED - now handled by top-level ServiceIslands)
+    /// Fetch market data (DEPRECATED - now handled by top-level `ServiceIslands`)
     ///
     /// This method is no longer used. Market data fetching is now done by
-    /// ServiceIslands.fetch_and_publish_market_data() which uses external_apis directly.
+    /// `ServiceIslands.fetch_and_publish_market_data()` which uses `external_apis` directly.
     #[allow(dead_code)]
     pub async fn fetch_market_data(&self, _force_realtime_refresh: bool) -> Result<serde_json::Value> {
         Err(anyhow::anyhow!("fetch_market_data is deprecated - use ServiceIslands.fetch_and_publish_market_data() instead"))

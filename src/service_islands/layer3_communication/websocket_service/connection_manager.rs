@@ -17,7 +17,7 @@ impl Default for ConnectionManager {
 }
 
 impl ConnectionManager {
-    /// Create a new ConnectionManager
+    /// Create a new `ConnectionManager`
     pub fn new() -> Self {
         Self {}
     }

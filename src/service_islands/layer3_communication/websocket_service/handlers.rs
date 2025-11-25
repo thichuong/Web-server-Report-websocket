@@ -16,7 +16,7 @@ impl Default for WebSocketHandlers {
 }
 
 impl WebSocketHandlers {
-    /// Create a new WebSocketHandlers
+    /// Create a new `WebSocketHandlers`
     pub fn new() -> Self {
         Self {
             // Initialize component

@@ -26,14 +26,14 @@ impl MarketDataApi {
                     Err(cmc_err) => {
                         self.record_failure();
                         error!("Both CoinGecko and CoinMarketCap failed for global data");
-                        Err(anyhow::anyhow!("Primary error: {}. Fallback error: {}", e, cmc_err))
+                        Err(anyhow::anyhow!("Primary error: {e}. Fallback error: {cmc_err}"))
                     }
                 }
             }
         }
     }
 
-    /// Fetch global data from CoinGecko
+    /// Fetch global data from `CoinGecko`
     async fn fetch_global_data_coingecko(&self) -> Result<serde_json::Value> {
         let result = self.fetch_with_retry(BASE_GLOBAL_URL, |global_data: CoinGeckoGlobal| {
             let market_cap = global_data.data.total_market_cap.get("usd").copied().unwrap_or(0.0);
@@ -54,22 +54,21 @@ impl MarketDataApi {
         }).await?;
 
         // Post-processing validation: check if we got meaningful data
-        let market_cap = result.get("market_cap").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let volume_24h = result.get("volume_24h").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let btc_dominance = result.get("btc_market_cap_percentage").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let market_cap = result.get("market_cap").and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+        let volume_24h = result.get("volume_24h").and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+        let btc_dominance = result.get("btc_market_cap_percentage").and_then(serde_json::Value::as_f64).unwrap_or(0.0);
 
         // Critical validation: if any essential data is missing or invalid, return error
         if market_cap <= 0.0 || volume_24h <= 0.0 || btc_dominance <= 0.0 {
             return Err(anyhow::anyhow!(
-                "CoinGecko data validation failed: market_cap={}, volume_24h={}, btc_dominance={}",
-                market_cap, volume_24h, btc_dominance
+                "CoinGecko data validation failed: market_cap={market_cap}, volume_24h={volume_24h}, btc_dominance={btc_dominance}"
             ));
         }
 
         Ok(result)
     }
 
-    /// Fetch global data from CoinMarketCap
+    /// Fetch global data from `CoinMarketCap`
     async fn fetch_global_data_cmc(&self) -> Result<serde_json::Value> {
         let cmc_key = self.cmc_api_key.as_ref()
             .ok_or_else(|| anyhow::anyhow!("CoinMarketCap API key not provided"))?;
@@ -105,7 +104,7 @@ impl MarketDataApi {
                 status if status == 429 => {
                     attempts += 1;
                     if attempts >= max_attempts {
-                        return Err(anyhow::anyhow!("CoinMarketCap global API rate limit exceeded after {} attempts", max_attempts));
+                        return Err(anyhow::anyhow!("CoinMarketCap global API rate limit exceeded after {max_attempts} attempts"));
                     }
 
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
@@ -114,7 +113,7 @@ impl MarketDataApi {
                     continue;
                 }
                 status => {
-                    return Err(anyhow::anyhow!("CoinMarketCap global API returned status: {}", status));
+                    return Err(anyhow::anyhow!("CoinMarketCap global API returned status: {status}"));
                 }
             }
         }
@@ -196,7 +195,7 @@ impl MarketDataApi {
                 status if status == 429 => {
                     attempts += 1;
                     if attempts >= max_attempts {
-                        return Err(anyhow::anyhow!("RSI API rate limit exceeded after {} attempts", max_attempts));
+                        return Err(anyhow::anyhow!("RSI API rate limit exceeded after {max_attempts} attempts"));
                     }
 
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
@@ -205,7 +204,7 @@ impl MarketDataApi {
                     continue;
                 }
                 status => {
-                    return Err(anyhow::anyhow!("RSI API returned status: {}", status));
+                    return Err(anyhow::anyhow!("RSI API returned status: {status}"));
                 }
             }
         }
@@ -256,13 +255,13 @@ impl MarketDataApi {
             let (symbol, name) = &indices[i];
             match result {
                 Ok(index_data) => {
-                    results.insert(symbol.to_string(), index_data);
+                    results.insert((*symbol).to_string(), index_data);
                 }
                 Err(e) => {
                     warn!(index_name = %name, error = %e, "Failed to fetch US stock index");
                     all_success = false;
                     // Insert placeholder data for failed fetch
-                    results.insert(symbol.to_string(), serde_json::json!({
+                    results.insert((*symbol).to_string(), serde_json::json!({
                         "symbol": symbol,
                         "name": name,
                         "price": 0.0,
@@ -287,7 +286,7 @@ impl MarketDataApi {
 
     /// Fetch single index from Finnhub
     async fn fetch_single_index(&self, symbol: &str, name: &str, api_key: &str) -> Result<serde_json::Value> {
-        let url = format!("https://finnhub.io/api/v1/quote?symbol={}&token={}", symbol, api_key);
+        let url = format!("https://finnhub.io/api/v1/quote?symbol={symbol}&token={api_key}");
 
         let mut attempts = 0;
         let max_attempts = 3;
@@ -319,7 +318,7 @@ impl MarketDataApi {
                 status if status == 429 => {
                     attempts += 1;
                     if attempts >= max_attempts {
-                        return Err(anyhow::anyhow!("Finnhub rate limit exceeded for {} after {} attempts", symbol, max_attempts));
+                        return Err(anyhow::anyhow!("Finnhub rate limit exceeded for {symbol} after {max_attempts} attempts"));
                     }
 
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
@@ -328,12 +327,12 @@ impl MarketDataApi {
                     continue;
                 }
                 status => {
-                    return Err(anyhow::anyhow!("Finnhub API returned status {} for {}", status, symbol));
+                    return Err(anyhow::anyhow!("Finnhub API returned status {status} for {symbol}"));
                 }
             }
         }
 
-        Err(anyhow::anyhow!("Finnhub API max retry attempts reached for {}", symbol))
+        Err(anyhow::anyhow!("Finnhub API max retry attempts reached for {symbol}"))
     }
 
     /// Get API statistics
