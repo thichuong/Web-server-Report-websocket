@@ -249,8 +249,7 @@ impl MarketDataApi {
         let index_results = futures::future::join_all(futures).await;
 
         // Process results
-        for (i, result) in index_results.into_iter().enumerate() {
-            let (symbol, name) = &indices[i];
+        for ((symbol, name), result) in indices.iter().zip(index_results.into_iter()) {
             match result {
                 Ok(index_data) => {
                     results.insert((*symbol).to_string(), index_data);

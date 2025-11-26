@@ -356,7 +356,7 @@ mod tests {
             topics: vec!["BTC".to_string(), "ETH".to_string()],
         });
 
-        let json = serde_json::to_string(&msg).unwrap();
+        let json = serde_json::to_string(&msg).expect("Serialization should succeed");
         assert!(json.contains(r#""type":"Subscribe"#));
         assert!(json.contains(r#""topics":["BTC","ETH"]"#));
     }
@@ -364,14 +364,14 @@ mod tests {
     #[test]
     fn test_client_message_heartbeat() {
         let msg = ClientMessage::Heartbeat;
-        let json = serde_json::to_string(&msg).unwrap();
+        let json = serde_json::to_string(&msg).expect("Serialization should succeed");
         assert_eq!(json, r#"{"type":"Heartbeat"}"#);
     }
 
     #[test]
     fn test_client_message_from_json() {
         let json = r#"{"type":"Subscribe","payload":{"topics":["BTC"]}}"#;
-        let msg = ClientMessage::from_json_str(json).unwrap();
+        let msg = ClientMessage::from_json_str(json).expect("Deserialization should succeed");
 
         match msg {
             ClientMessage::Subscribe(payload) => {
@@ -384,7 +384,7 @@ mod tests {
     #[test]
     fn test_server_message_error() {
         let msg = ServerMessage::new_error(ERROR_CODE_INVALID_TOPIC, "Invalid topic");
-        let json = msg.to_json_string().unwrap();
+        let json = msg.to_json_string().expect("Serialization should succeed");
 
         assert!(json.contains(r#""type":"Error"#));
         assert!(json.contains(ERROR_CODE_INVALID_TOPIC));
@@ -394,7 +394,7 @@ mod tests {
     #[test]
     fn test_server_message_welcome() {
         let msg = ServerMessage::new_welcome("conn-123".to_string(), "1.0.0");
-        let json = msg.to_json_string().unwrap();
+        let json = msg.to_json_string().expect("Serialization should succeed");
 
         assert!(json.contains(r#""type":"Welcome"#));
         assert!(json.contains("conn-123"));
@@ -412,7 +412,7 @@ mod tests {
             timestamp: 1234567890,
         });
 
-        let json = msg.to_json_string().unwrap();
+        let json = msg.to_json_string().expect("Serialization should succeed");
         assert!(json.contains("change24h")); // camelCase field name
         assert!(json.contains("50000"));
     }
@@ -451,7 +451,7 @@ mod tests {
         }"#;
 
         // Deserialize from Redis JSON (snake_case)
-        let dashboard_data = DashboardData::from_json_str(redis_json).unwrap();
+        let dashboard_data = DashboardData::from_json_str(redis_json).expect("Deserialization should succeed");
 
         // Verify key fields
         assert_eq!(dashboard_data.btc_price_usd, 96062.47);
@@ -459,7 +459,7 @@ mod tests {
         assert_eq!(dashboard_data.eth_price_usd, 3177.25);
 
         // Serialize back to JSON (should be camelCase for frontend)
-        let json = dashboard_data.to_json_string().unwrap();
+        let json = dashboard_data.to_json_string().expect("Serialization should succeed");
         assert!(json.contains("btcPriceUsd")); // camelCase
         assert!(json.contains("96062.47"));
     }
@@ -496,7 +496,7 @@ mod tests {
         }"#;
 
         // Create payload from Redis JSON
-        let payload = DashboardUpdatePayload::from_json_str(redis_json, "external_apis").unwrap();
+        let payload = DashboardUpdatePayload::from_json_str(redis_json, "external_apis").expect("Deserialization should succeed");
 
         // Verify source
         assert_eq!(payload.source, "external_apis");
@@ -504,7 +504,7 @@ mod tests {
 
         // Wrap in ServerMessage and serialize
         let msg = ServerMessage::DashboardUpdate(Box::new(payload));
-        let json = msg.to_json_string().unwrap();
+        let json = msg.to_json_string().expect("Serialization should succeed");
 
         // Should be camelCase for frontend
         assert!(json.contains("btcPriceUsd"));
