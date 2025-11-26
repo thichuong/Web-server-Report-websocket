@@ -27,17 +27,26 @@ pub struct MarketDataApi {
 
 impl MarketDataApi {
     /// Create a new `MarketDataApi`
+    ///
+    /// # Errors
+    /// Returns error if HTTP client initialization fails
     #[allow(dead_code)]
     pub async fn new(taapi_secret: String) -> Result<Self> {
         Self::with_cmc_key(taapi_secret, None).await
     }
 
     /// Create a new `MarketDataApi` with `CoinMarketCap` API key
+    ///
+    /// # Errors
+    /// Returns error if HTTP client initialization fails
     pub async fn with_cmc_key(taapi_secret: String, cmc_api_key: Option<String>) -> Result<Self> {
         Self::with_all_keys(taapi_secret, cmc_api_key, None).await
     }
 
     /// Create a new `MarketDataApi` with all API keys
+    ///
+    /// # Errors
+    /// Returns error if HTTP client initialization fails
     #[allow(clippy::unused_async)]
     pub async fn with_all_keys(
         taapi_secret: String,

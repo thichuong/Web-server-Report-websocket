@@ -46,6 +46,9 @@ impl WebSocketServiceIsland {
     /// Initialize the WebSocket Service Island with External APIs and Cache Optimization
     ///
     /// Creates all components and establishes communication channels with Layer 2 and cache optimization.
+    ///
+    /// # Errors
+    /// Returns error if component initialization fails
     #[allow(clippy::unused_async)]
     pub async fn with_external_apis_and_cache(
         _external_apis: Arc<ExternalApisIsland>,
@@ -80,6 +83,9 @@ impl WebSocketServiceIsland {
     /// Initialize the WebSocket Service Island with Layer 2 gRPC Client and Cache Optimization
     ///
     /// Note: gRPC client not used in websocket service - uses direct external API access instead
+    ///
+    /// # Errors
+    /// Returns error if component initialization fails
     #[allow(dead_code)]
     #[allow(clippy::unused_async)]
     pub async fn with_grpc_client_and_cache(
@@ -113,6 +119,9 @@ impl WebSocketServiceIsland {
     /// Health check for the entire WebSocket Service Island
     ///
     /// Validates that all components are operational.
+    ///
+    /// # Errors
+    /// Returns error if any component is unhealthy
     pub async fn health_check(&self) -> Result<()> {
         debug!("Checking WebSocket Service Island health");
 
@@ -158,6 +167,9 @@ impl WebSocketServiceIsland {
     ///
     /// This method is no longer used. Market data fetching is now done by
     /// `ServiceIslands.fetch_and_publish_market_data()` which uses `external_apis` directly.
+    ///
+    /// # Errors
+    /// Always returns error as this method is deprecated
     #[allow(dead_code)]
     #[allow(clippy::unused_async)]
     pub async fn fetch_market_data(

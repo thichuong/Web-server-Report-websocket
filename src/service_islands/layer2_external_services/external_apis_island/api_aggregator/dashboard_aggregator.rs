@@ -15,6 +15,9 @@ impl ApiAggregator {
     /// Returns a focused summary with essential market data
     ///
     /// `force_realtime_refresh`: If true, forces refresh of `RealTime` cached data (crypto prices)
+    ///
+    /// # Errors
+    /// Returns error if all API calls fail or dashboard data cannot be constructed
     #[allow(clippy::too_many_lines)]
     #[allow(clippy::cast_possible_truncation)]
     pub async fn fetch_dashboard_summary_v2(
@@ -77,20 +80,29 @@ impl ApiAggregator {
         let bnb = get_price("BNB");
         let (bnb_price, bnb_change) = (bnb.price_usd, bnb.change_24h);
 
-        // Process global data
+        // Process global data - Fixed: Safe indexing with .get()
         let (market_cap, volume_24h, market_cap_change, btc_dominance, eth_dominance) =
             if let Ok(Ok(global_data)) = global_result {
                 (
-                    global_data["market_cap"].as_f64().unwrap_or(0.0),
-                    global_data["volume_24h"].as_f64().unwrap_or(0.0),
-                    global_data["market_cap_change_percentage_24h_usd"]
-                        .as_f64()
+                    global_data
+                        .get("market_cap")
+                        .and_then(serde_json::Value::as_f64)
                         .unwrap_or(0.0),
-                    global_data["btc_market_cap_percentage"]
-                        .as_f64()
+                    global_data
+                        .get("volume_24h")
+                        .and_then(serde_json::Value::as_f64)
                         .unwrap_or(0.0),
-                    global_data["eth_market_cap_percentage"]
-                        .as_f64()
+                    global_data
+                        .get("market_cap_change_percentage_24h_usd")
+                        .and_then(serde_json::Value::as_f64)
+                        .unwrap_or(0.0),
+                    global_data
+                        .get("btc_market_cap_percentage")
+                        .and_then(serde_json::Value::as_f64)
+                        .unwrap_or(0.0),
+                    global_data
+                        .get("eth_market_cap_percentage")
+                        .and_then(serde_json::Value::as_f64)
                         .unwrap_or(0.0),
                 )
             } else {
@@ -98,32 +110,45 @@ impl ApiAggregator {
                 (0.0, 0.0, 0.0, 0.0, 0.0)
             };
 
-        // Process FNG data
+        // Process FNG data - Fixed: Safe indexing with .get()
         let fng_value = if let Ok(Ok(fng_data)) = fng_result {
-            fng_data["value"].as_u64().unwrap_or(50) as u32
+            fng_data
+                .get("value")
+                .and_then(serde_json::Value::as_u64)
+                .map_or(50, |v| v as u32)
         } else {
             partial_failure = true;
             50
         };
 
-        // Process RSI data
+        // Process RSI data - Fixed: Safe indexing with .get()
         let btc_rsi_14_value = if let Ok(Ok(btc_rsi_14_data)) = btc_rsi_14_result {
-            btc_rsi_14_data["value"].as_f64().unwrap_or(50.0)
+            btc_rsi_14_data
+                .get("value")
+                .and_then(serde_json::Value::as_f64)
+                .unwrap_or(50.0)
         } else {
             partial_failure = true;
             50.0
         };
 
         // Process US Stock Indices data - Parse strongly-typed structure
+        // Fixed: Safe indexing with .get()
         let us_stock_indices = if let Ok(Ok(indices_data)) = us_indices_result {
             // Try to parse the nested "indices" field into UsStockIndices
-            match serde_json::from_value::<UsStockIndices>(indices_data["indices"].clone()) {
-                Ok(parsed) => parsed,
-                Err(e) => {
-                    warn!("Failed to parse US stock indices: {}. Using empty data.", e);
-                    partial_failure = true;
-                    UsStockIndices::default()
+            if let Some(indices_value) = indices_data.get("indices") {
+                match serde_json::from_value::<UsStockIndices>(indices_value.clone()) {
+                    Ok(parsed) => parsed,
+                    Err(e) => {
+                        warn!("Failed to parse US stock indices: {}. Using empty data.", e);
+                        partial_failure = true;
+                        UsStockIndices::default()
+                    }
                 }
+            } else {
+                warn!("Missing 'indices' field in response. Using empty data.");
+                partial_failure = true;
+                UsStockIndices::default()
             }
         } else {
             partial_failure = true;

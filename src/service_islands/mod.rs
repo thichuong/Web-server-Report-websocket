@@ -44,6 +44,9 @@ impl ServiceIslands {
     ///
     /// This method initializes only the necessary service islands:
     /// Layer 1 (Infrastructure/Cache), Layer 2 (External APIs), Layer 3 (Communication)
+    ///
+    /// # Errors
+    /// Returns error if any service island initialization fails
     pub async fn initialize() -> Result<Self, anyhow::Error> {
         println!("🏝️ Initializing WebSocket Service Islands...");
 
@@ -136,6 +139,9 @@ impl ServiceIslands {
     }
 
     /// Fetch market data from External APIs and publish to Redis Streams
+    ///
+    /// # Errors
+    /// Returns error if data fetching or serialization fails
     pub async fn fetch_and_publish_market_data(
         &self,
         force_refresh: bool,
@@ -190,6 +196,9 @@ impl ServiceIslands {
     }
 
     /// Broadcast data to all connected WebSocket clients
+    ///
+    /// # Errors
+    /// Returns error if message serialization fails
     pub async fn broadcast_to_websocket_clients(
         &self,
         data: DashboardData,
@@ -285,6 +294,7 @@ impl ServiceIslands {
     }
 
     /// Get number of active WebSocket connections
+    #[must_use]
     pub fn active_connections(&self) -> usize {
         use std::sync::atomic::Ordering;
         self.active_ws_connections.load(Ordering::SeqCst)

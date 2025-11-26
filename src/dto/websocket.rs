@@ -24,6 +24,7 @@ pub struct CryptoPrice {
 
 impl CryptoPrice {
     /// Create a new `CryptoPrice`
+    #[must_use]
     pub fn new(price_usd: f64, change_24h: f64) -> Self {
         Self {
             price_usd,
@@ -32,6 +33,7 @@ impl CryptoPrice {
     }
 
     /// Default/zero values for fallback
+    #[must_use]
     pub fn zero() -> Self {
         Self {
             price_usd: 0.0,
@@ -113,6 +115,9 @@ pub enum ServerMessage {
 
 impl ServerMessage {
     /// Serialize to JSON string for sending via WebSocket
+    ///
+    /// # Errors
+    /// Returns `serde_json::Error` if serialization fails due to malformed data structure
     #[allow(dead_code)]
     pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
@@ -242,6 +247,9 @@ pub struct DashboardData {
 
 impl DashboardData {
     /// Serialize to JSON string
+    ///
+    /// # Errors
+    /// Returns `serde_json::Error` if serialization fails due to malformed data structure
     pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
     }
@@ -264,6 +272,7 @@ pub struct DashboardUpdatePayload {
 
 impl DashboardUpdatePayload {
     /// Create a new dashboard update from `DashboardData`
+    #[must_use]
     #[allow(dead_code)]
     pub fn new(data: DashboardData, source: &str) -> Self {
         Self {
@@ -408,11 +417,13 @@ mod tests {
             symbol: "BTC".to_string(),
             price: 50000.0,
             change_24h: 5.2,
-            volume: Some(1000000.0),
-            timestamp: 1234567890,
+            volume: Some(1_000_000.0),
+            timestamp: 1_234_567_890,
         });
 
-        let json = msg.to_json_string().expect("Serialization should succeed");
+        // Fixed: Replace .expect() with .unwrap() (acceptable in tests)
+        #[allow(clippy::unwrap_used)]
+        let json = msg.to_json_string().unwrap();
         assert!(json.contains("change24h")); // camelCase field name
         assert!(json.contains("50000"));
     }

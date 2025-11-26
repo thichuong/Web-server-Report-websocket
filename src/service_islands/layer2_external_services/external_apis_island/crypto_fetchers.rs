@@ -4,9 +4,12 @@
 
 impl MarketDataApi {
     /// Fetch multiple crypto prices in a single Binance API call (OPTIMIZED)
-    /// 
+    ///
     /// Fetches BTC, ETH, SOL, XRP, ADA, LINK, BNB prices in one request
     /// Returns `HashMap`<Symbol, (`price_usd`, `change_24h`)>
+    ///
+    /// # Errors
+    /// Returns error if Binance API call fails, response parsing fails, or validation fails
     pub async fn fetch_multi_crypto_prices(&self) -> Result<HashMap<String, (f64, f64)>> {
         self.record_api_call();
 
@@ -78,6 +81,9 @@ impl MarketDataApi {
     }
 
     /// Generic fetch with retry logic and exponential backoff
+    ///
+    /// # Errors
+    /// Returns error if all retry attempts fail or response parsing fails
     pub async fn fetch_with_retry<T, F>(&self, url: &str, transformer: F) -> Result<serde_json::Value>
     where
         T: for<'de> serde::Deserialize<'de>,

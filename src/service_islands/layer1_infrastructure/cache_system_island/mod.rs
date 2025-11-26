@@ -36,6 +36,9 @@ impl CacheSystemIsland {
     /// Initialize the Cache System Island
     ///
     /// Now uses the multi-tier-cache library internally.
+    ///
+    /// # Errors
+    /// Returns error if Redis connection fails or cache initialization encounters issues
     pub async fn new() -> Result<Self> {
         println!("🏗️ Initializing Cache System Island (using multi-tier-cache library)...");
 
@@ -53,6 +56,7 @@ impl CacheSystemIsland {
     }
 
     /// Direct access to cache manager (idiomatic accessor)
+    #[must_use]
     pub fn cache_manager(&self) -> &Arc<CacheManager> {
         &self.0.cache_manager
     }

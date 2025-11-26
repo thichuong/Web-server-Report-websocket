@@ -31,6 +31,9 @@ pub struct ExternalApisIsland {
 
 impl ExternalApisIsland {
     /// Create a new `ExternalApisIsland` with cache system
+    ///
+    /// # Errors
+    /// Returns error if API initialization fails for market data or aggregator
     pub async fn with_cache_and_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
@@ -75,6 +78,9 @@ impl ExternalApisIsland {
     }
 
     /// Health check for External APIs Island
+    ///
+    /// # Errors
+    /// Returns error if health check operations fail
     pub async fn health_check(&self) -> Result<bool> {
         let market_api_healthy = self.market_api.health_check().await;
         let aggregator_healthy = self.aggregator.health_check().await;
@@ -84,6 +90,9 @@ impl ExternalApisIsland {
     /// Fetch dashboard summary v2 - Main Layer 2 functionality
     ///
     /// `force_realtime_refresh`: If true, forces refresh of `RealTime` cached data
+    ///
+    /// # Errors
+    /// Returns error if dashboard data aggregation fails
     pub async fn fetch_dashboard_summary_v2(
         &self,
         force_realtime_refresh: bool,

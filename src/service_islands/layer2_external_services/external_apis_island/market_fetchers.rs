@@ -6,6 +6,9 @@ use futures;
 
 impl MarketDataApi {
     /// Fetch global market data with fallback chain
+    ///
+    /// # Errors
+    /// Returns error if all API sources (`CoinGecko` and `CoinMarketCap`) fail or validation fails
     pub async fn fetch_global_data(&self) -> Result<serde_json::Value> {
         self.record_api_call();
 
@@ -121,6 +124,9 @@ impl MarketDataApi {
     }
 
     /// Fetch Fear & Greed Index
+    ///
+    /// # Errors
+    /// Returns error if API fetch fails or response parsing fails
     pub async fn fetch_fear_greed_index(&self) -> Result<serde_json::Value> {
         self.record_api_call();
 
@@ -153,6 +159,9 @@ impl MarketDataApi {
     }
 
     /// Fetch RSI data
+    ///
+    /// # Errors
+    /// Returns error if API fetch fails, rate limit is exceeded, or response parsing fails
     pub async fn fetch_btc_rsi_14(&self) -> Result<serde_json::Value> {
         self.record_api_call();
 
@@ -211,6 +220,9 @@ impl MarketDataApi {
     }
 
     /// Fetch US Stock Market Indices from Finnhub
+    ///
+    /// # Errors
+    /// Returns error if API fetch fails, rate limit is exceeded, or response parsing fails
     pub async fn fetch_us_stock_indices(&self) -> Result<serde_json::Value> {
         self.record_api_call();
 
@@ -332,6 +344,7 @@ impl MarketDataApi {
     }
 
     /// Get API statistics
+    #[must_use]
     #[allow(dead_code)]
     #[allow(clippy::cast_precision_loss)]
     pub fn get_api_stats(&self) -> serde_json::Value {

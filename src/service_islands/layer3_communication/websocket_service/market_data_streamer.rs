@@ -25,6 +25,7 @@ impl Default for MarketDataStreamer {
 
 impl MarketDataStreamer {
     /// Create new Market Data Streamer without External APIs dependency
+    #[must_use]
     pub fn new() -> Self {
         Self {
             external_apis: None,

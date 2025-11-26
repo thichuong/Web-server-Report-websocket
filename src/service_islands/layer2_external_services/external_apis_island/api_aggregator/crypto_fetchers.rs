@@ -18,6 +18,9 @@ impl ApiAggregator {
     /// Each value is a strongly-typed `CryptoPrice` with `price_usd` and `change_24h`
     ///
     /// `force_refresh`: If true, bypasses cache and forces API fetch, then updates cache
+    ///
+    /// # Errors
+    /// Returns error if API fetch fails or cache operations encounter issues
     pub async fn fetch_all_crypto_prices_with_cache(
         &self,
         force_refresh: bool,

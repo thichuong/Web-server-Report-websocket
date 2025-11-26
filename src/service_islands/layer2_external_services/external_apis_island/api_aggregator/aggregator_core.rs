@@ -27,17 +27,26 @@ pub struct ApiAggregator {
 
 impl ApiAggregator {
     /// Create a new `ApiAggregator`
+    ///
+    /// # Errors
+    /// Returns error if API initialization or HTTP client setup fails
     #[allow(dead_code)]
     pub async fn new(taapi_secret: String) -> Result<Self> {
         Self::with_cmc_key(taapi_secret, None).await
     }
 
     /// Create a new `ApiAggregator` with `CoinMarketCap` support
+    ///
+    /// # Errors
+    /// Returns error if API initialization or HTTP client setup fails
     pub async fn with_cmc_key(taapi_secret: String, cmc_api_key: Option<String>) -> Result<Self> {
         Self::with_all_keys(taapi_secret, cmc_api_key, None).await
     }
 
     /// Create a new `ApiAggregator` with all API keys
+    ///
+    /// # Errors
+    /// Returns error if API initialization or HTTP client setup fails
     pub async fn with_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
@@ -64,6 +73,9 @@ impl ApiAggregator {
     }
 
     /// Create `ApiAggregator` with cache system
+    ///
+    /// # Errors
+    /// Returns error if API initialization or HTTP client setup fails
     #[allow(dead_code)]
     pub async fn with_cache(
         taapi_secret: String,
@@ -73,6 +85,9 @@ impl ApiAggregator {
     }
 
     /// Create `ApiAggregator` with cache system and `CoinMarketCap` support
+    ///
+    /// # Errors
+    /// Returns error if API initialization or HTTP client setup fails
     pub async fn with_cache_and_cmc(
         taapi_secret: String,
         cmc_api_key: Option<String>,
@@ -82,6 +97,9 @@ impl ApiAggregator {
     }
 
     /// Create `ApiAggregator` with cache system and all API keys
+    ///
+    /// # Errors
+    /// Returns error if API initialization or HTTP client setup fails
     pub async fn with_cache_and_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,

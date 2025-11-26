@@ -11,6 +11,7 @@ pub use multi_tier_cache::{CacheManager, CacheManagerStats, CacheStrategy};
 ///
 /// Use this for real-time market data that updates frequently.
 /// The 5-second TTL balances freshness with API rate limiting.
+#[must_use]
 pub fn realtime_strategy() -> CacheStrategy {
     CacheStrategy::Custom(std::time::Duration::from_secs(5))
 }

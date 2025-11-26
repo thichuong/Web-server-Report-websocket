@@ -21,6 +21,7 @@ impl Default for BroadcastService {
 
 impl BroadcastService {
     /// Create a new `BroadcastService` with a broadcast channel
+    #[must_use]
     pub fn new() -> Self {
         let (broadcast_tx, _) = broadcast::channel(1000);
         Self { broadcast_tx }
@@ -35,6 +36,7 @@ impl BroadcastService {
     }
 
     /// Get a receiver for the broadcast channel
+    #[must_use]
     pub fn subscribe(&self) -> broadcast::Receiver<String> {
         self.broadcast_tx.subscribe()
     }

@@ -51,6 +51,9 @@ impl LeaderElectionService {
     ///     "ws-instance-1".to_string()
     /// ).await?;
     /// ```
+    ///
+    /// # Errors
+    /// Returns error if Redis client creation fails, connection fails, or ping test fails
     pub async fn new(redis_url: &str, node_id: String) -> Result<Self> {
         let redis_client =
             Client::open(redis_url).context("Failed to create Redis client for leader election")?;
@@ -89,6 +92,9 @@ impl LeaderElectionService {
     ///     println!("I am the leader!");
     /// }
     /// ```
+    ///
+    /// # Errors
+    /// Returns error if Redis connection fails or SET NX EX command execution fails
     pub async fn try_acquire_leadership(&self) -> Result<bool> {
         let mut conn = self
             .redis_client
@@ -129,6 +135,9 @@ impl LeaderElectionService {
     /// Uses Lua script for atomic check-and-extend operation.
     ///
     /// Returns true if leadership was successfully renewed.
+    ///
+    /// # Errors
+    /// Returns error if Redis connection fails or Lua script execution fails
     pub async fn renew_leadership(&self) -> Result<bool> {
         let mut conn = self
             .redis_client
@@ -171,6 +180,9 @@ impl LeaderElectionService {
     ///
     /// Deletes the lock if this node is the owner.
     /// Use this during graceful shutdown to allow faster failover.
+    ///
+    /// # Errors
+    /// Returns error if Redis connection fails or Lua script execution fails
     pub async fn release_leadership(&self) -> Result<()> {
         let mut conn = self
             .redis_client
