@@ -23,9 +23,7 @@ impl BroadcastService {
     /// Create a new `BroadcastService` with a broadcast channel
     pub fn new() -> Self {
         let (broadcast_tx, _) = broadcast::channel(1000);
-        Self {
-            broadcast_tx,
-        }
+        Self { broadcast_tx }
     }
 
     /// Broadcast a message to all connected WebSocket clients

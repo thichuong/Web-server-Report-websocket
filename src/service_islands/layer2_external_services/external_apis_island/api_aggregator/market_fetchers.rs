@@ -3,10 +3,10 @@
 //! This module contains all the market data fetching methods with caching
 //! for global market data, Fear & Greed Index, RSI, and US stock indices.
 
+use super::aggregator_core::ApiAggregator;
 use anyhow::Result;
 use std::sync::Arc;
 use tracing::{debug, warn};
-use super::aggregator_core::ApiAggregator;
 
 impl ApiAggregator {
     /// Fetch global data with type-safe automatic caching

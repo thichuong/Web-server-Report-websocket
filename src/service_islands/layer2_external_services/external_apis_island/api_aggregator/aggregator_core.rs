@@ -2,15 +2,14 @@
 //!
 //! This module contains the core `ApiAggregator` struct and its constructor methods.
 
-use reqwest::Client;
-use anyhow::Result;
-use std::sync::Arc;
-use std::sync::atomic::AtomicUsize;
-use tracing::{info, debug, error};
-use crate::service_islands::layer2_external_services::external_apis_island::market_data_api::MarketDataApi;
-use crate::service_islands::layer1_infrastructure::CacheSystemIsland;
 use crate::performance::OPTIMIZED_HTTP_CLIENT;
-
+use crate::service_islands::layer1_infrastructure::CacheSystemIsland;
+use crate::service_islands::layer2_external_services::external_apis_island::market_data_api::MarketDataApi;
+use anyhow::Result;
+use reqwest::Client;
+use std::sync::atomic::AtomicUsize;
+use std::sync::Arc;
+use tracing::{debug, error, info};
 
 /// API Aggregator
 ///
@@ -42,7 +41,7 @@ impl ApiAggregator {
     pub async fn with_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
-        finnhub_api_key: Option<String>
+        finnhub_api_key: Option<String>,
     ) -> Result<Self> {
         info!("Initializing API Aggregator");
 
@@ -50,7 +49,9 @@ impl ApiAggregator {
         let client = OPTIMIZED_HTTP_CLIENT.clone();
 
         // Create market API instance with async initialization
-        let market_api = Arc::new(MarketDataApi::with_all_keys(taapi_secret, cmc_api_key, finnhub_api_key).await?);
+        let market_api = Arc::new(
+            MarketDataApi::with_all_keys(taapi_secret, cmc_api_key, finnhub_api_key).await?,
+        );
 
         Ok(Self {
             market_api,
@@ -64,7 +65,10 @@ impl ApiAggregator {
 
     /// Create `ApiAggregator` with cache system
     #[allow(dead_code)]
-    pub async fn with_cache(taapi_secret: String, cache_system: Arc<CacheSystemIsland>) -> Result<Self> {
+    pub async fn with_cache(
+        taapi_secret: String,
+        cache_system: Arc<CacheSystemIsland>,
+    ) -> Result<Self> {
         Self::with_cache_and_cmc(taapi_secret, None, cache_system).await
     }
 
@@ -72,7 +76,7 @@ impl ApiAggregator {
     pub async fn with_cache_and_cmc(
         taapi_secret: String,
         cmc_api_key: Option<String>,
-        cache_system: Arc<CacheSystemIsland>
+        cache_system: Arc<CacheSystemIsland>,
     ) -> Result<Self> {
         Self::with_cache_and_all_keys(taapi_secret, cmc_api_key, None, cache_system).await
     }
@@ -82,9 +86,10 @@ impl ApiAggregator {
         taapi_secret: String,
         cmc_api_key: Option<String>,
         finnhub_api_key: Option<String>,
-        cache_system: Arc<CacheSystemIsland>
+        cache_system: Arc<CacheSystemIsland>,
     ) -> Result<Self> {
-        let mut aggregator = Self::with_all_keys(taapi_secret, cmc_api_key, finnhub_api_key).await?;
+        let mut aggregator =
+            Self::with_all_keys(taapi_secret, cmc_api_key, finnhub_api_key).await?;
         aggregator.cache_system = Some(cache_system);
         Ok(aggregator)
     }

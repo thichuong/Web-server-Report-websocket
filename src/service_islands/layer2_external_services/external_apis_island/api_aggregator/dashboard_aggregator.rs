@@ -3,12 +3,12 @@
 //! This module contains the dashboard data aggregation logic that orchestrates
 //! multiple API calls concurrently and handles error processing.
 
+use super::aggregator_core::ApiAggregator;
+use crate::dto::websocket::{CryptoPrice, DashboardData, UsStockIndices};
 use anyhow::Result;
 use std::sync::atomic::Ordering;
 use tokio::time::{timeout, Duration};
 use tracing::{info, warn};
-use super::aggregator_core::ApiAggregator;
-use crate::dto::websocket::{DashboardData, UsStockIndices, CryptoPrice};
 
 impl ApiAggregator {
     /// Fetch dashboard summary v2 - Main method for Layer 2 dashboard data
@@ -17,7 +17,10 @@ impl ApiAggregator {
     /// `force_realtime_refresh`: If true, forces refresh of `RealTime` cached data (crypto prices)
     #[allow(clippy::too_many_lines)]
     #[allow(clippy::cast_possible_truncation)]
-    pub async fn fetch_dashboard_summary_v2(&self, force_realtime_refresh: bool) -> Result<DashboardData> {
+    pub async fn fetch_dashboard_summary_v2(
+        &self,
+        force_realtime_refresh: bool,
+    ) -> Result<DashboardData> {
         let start_time = std::time::Instant::now();
         self.total_aggregations.fetch_add(1, Ordering::Relaxed);
 
@@ -25,7 +28,10 @@ impl ApiAggregator {
 
         // Fetch essential data concurrently with shorter timeouts for summary
         // OPTIMIZED: Single multi-crypto API call instead of 7 individual calls
-        let multi_crypto_future = timeout(Duration::from_secs(8), self.fetch_all_crypto_prices_with_cache(force_realtime_refresh));
+        let multi_crypto_future = timeout(
+            Duration::from_secs(8),
+            self.fetch_all_crypto_prices_with_cache(force_realtime_refresh),
+        );
         let global_future = timeout(Duration::from_secs(8), self.fetch_global_with_cache());
         let fng_future = timeout(Duration::from_secs(8), self.fetch_fng_with_cache());
         let btc_rsi_14_future = timeout(Duration::from_secs(8), self.fetch_btc_rsi_14_with_cache());
@@ -33,13 +39,18 @@ impl ApiAggregator {
 
         let (multi_crypto_result, global_result, fng_result, btc_rsi_14_result, us_indices_result) = tokio::join!(
             multi_crypto_future,
-            global_future, fng_future, btc_rsi_14_future, us_indices_future
+            global_future,
+            fng_future,
+            btc_rsi_14_future,
+            us_indices_future
         );
 
         let mut partial_failure = false;
 
         // Process multi-crypto data (all 7 coins in one result) - Now strongly-typed!
-        let crypto_prices = if let Ok(Ok(prices_map)) = multi_crypto_result { prices_map } else {
+        let crypto_prices = if let Ok(Ok(prices_map)) = multi_crypto_result {
+            prices_map
+        } else {
             partial_failure = true;
             warn!("Multi-crypto prices fetch failed");
             std::collections::HashMap::new()
@@ -47,9 +58,7 @@ impl ApiAggregator {
 
         // Extract price data once for each symbol - Now directly from CryptoPrice!
         let get_price = |symbol: &str| -> CryptoPrice {
-            crypto_prices.get(symbol)
-                .copied()
-                .unwrap_or_default()
+            crypto_prices.get(symbol).copied().unwrap_or_default()
         };
 
         // Extract individual coin data
@@ -69,25 +78,38 @@ impl ApiAggregator {
         let (bnb_price, bnb_change) = (bnb.price_usd, bnb.change_24h);
 
         // Process global data
-        let (market_cap, volume_24h, market_cap_change, btc_dominance, eth_dominance) = if let Ok(Ok(global_data)) = global_result { (
-            global_data["market_cap"].as_f64().unwrap_or(0.0),
-            global_data["volume_24h"].as_f64().unwrap_or(0.0),
-            global_data["market_cap_change_percentage_24h_usd"].as_f64().unwrap_or(0.0),
-            global_data["btc_market_cap_percentage"].as_f64().unwrap_or(0.0),
-            global_data["eth_market_cap_percentage"].as_f64().unwrap_or(0.0)
-        ) } else {
-            partial_failure = true;
-            (0.0, 0.0, 0.0, 0.0, 0.0)
-        };
+        let (market_cap, volume_24h, market_cap_change, btc_dominance, eth_dominance) =
+            if let Ok(Ok(global_data)) = global_result {
+                (
+                    global_data["market_cap"].as_f64().unwrap_or(0.0),
+                    global_data["volume_24h"].as_f64().unwrap_or(0.0),
+                    global_data["market_cap_change_percentage_24h_usd"]
+                        .as_f64()
+                        .unwrap_or(0.0),
+                    global_data["btc_market_cap_percentage"]
+                        .as_f64()
+                        .unwrap_or(0.0),
+                    global_data["eth_market_cap_percentage"]
+                        .as_f64()
+                        .unwrap_or(0.0),
+                )
+            } else {
+                partial_failure = true;
+                (0.0, 0.0, 0.0, 0.0, 0.0)
+            };
 
         // Process FNG data
-        let fng_value = if let Ok(Ok(fng_data)) = fng_result { fng_data["value"].as_u64().unwrap_or(50) as u32 } else {
+        let fng_value = if let Ok(Ok(fng_data)) = fng_result {
+            fng_data["value"].as_u64().unwrap_or(50) as u32
+        } else {
             partial_failure = true;
             50
         };
 
         // Process RSI data
-        let btc_rsi_14_value = if let Ok(Ok(btc_rsi_14_data)) = btc_rsi_14_result { btc_rsi_14_data["value"].as_f64().unwrap_or(50.0) } else {
+        let btc_rsi_14_value = if let Ok(Ok(btc_rsi_14_data)) = btc_rsi_14_result {
+            btc_rsi_14_data["value"].as_f64().unwrap_or(50.0)
+        } else {
             partial_failure = true;
             50.0
         };
@@ -114,10 +136,16 @@ impl ApiAggregator {
         // Update statistics
         if partial_failure {
             self.partial_failures.fetch_add(1, Ordering::Relaxed);
-            warn!(duration_ms = duration.as_millis(), "Dashboard summary v2 aggregated with partial failures");
+            warn!(
+                duration_ms = duration.as_millis(),
+                "Dashboard summary v2 aggregated with partial failures"
+            );
         } else {
             self.successful_aggregations.fetch_add(1, Ordering::Relaxed);
-            info!(duration_ms = duration.as_millis(), "Dashboard summary v2 aggregated successfully");
+            info!(
+                duration_ms = duration.as_millis(),
+                "Dashboard summary v2 aggregated successfully"
+            );
         }
 
         // Return strongly-typed DashboardData

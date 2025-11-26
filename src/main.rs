@@ -1,20 +1,23 @@
 #![warn(clippy::pedantic)]
+use anyhow::Context;
+use axum::{
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        State,
+    },
+    response::IntoResponse,
+    routing::get,
+    Router,
+};
 use dotenvy::dotenv;
 use std::{env, net::SocketAddr, sync::Arc, time::Duration};
-use axum::{
-    Router,
-    routing::get,
-    extract::{ws::{WebSocket, WebSocketUpgrade, Message}, State},
-    response::IntoResponse,
-};
 use tokio::{signal, time::interval};
-use tracing::{info, error, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use anyhow::Context;
 
-mod service_islands;
-mod performance;
 mod dto;
+mod performance;
+mod service_islands;
 
 use service_islands::ServiceIslands;
 
@@ -113,15 +116,27 @@ async fn handle_websocket(mut socket: WebSocket, service_islands: Arc<ServiceIsl
     use std::sync::atomic::Ordering;
 
     // Increment connection counter
-    service_islands.active_ws_connections.fetch_add(1, Ordering::SeqCst);
+    service_islands
+        .active_ws_connections
+        .fetch_add(1, Ordering::SeqCst);
     let current_connections = service_islands.active_connections();
-    info!("➕ New WebSocket connection (total: {})", current_connections);
+    info!(
+        "➕ New WebSocket connection (total: {})",
+        current_connections
+    );
 
     // Subscribe to broadcast channel
-    let mut rx = service_islands.websocket_service.broadcast_service.subscribe();
+    let mut rx = service_islands
+        .websocket_service
+        .broadcast_service
+        .subscribe();
 
     // Send initial message
-    if socket.send(Message::Text("Connected to WebSocket service".to_string())).await.is_err() {
+    if socket
+        .send(Message::Text("Connected to WebSocket service".to_string()))
+        .await
+        .is_err()
+    {
         info!("Failed to send initial message");
         return;
     }
@@ -150,17 +165,20 @@ async fn handle_websocket(mut socket: WebSocket, service_islands: Arc<ServiceIsl
     }
 
     // Decrement connection counter
-    service_islands.active_ws_connections.fetch_sub(1, Ordering::SeqCst);
+    service_islands
+        .active_ws_connections
+        .fetch_sub(1, Ordering::SeqCst);
     let current_connections = service_islands.active_connections();
-    info!("➖ WebSocket connection closed (total: {})", current_connections);
+    info!(
+        "➖ WebSocket connection closed (total: {})",
+        current_connections
+    );
 }
 
 /// Health check endpoint
 /// Returns OK (200) if core services are healthy (cache, websocket)
 /// External APIs being down won't fail the health check
-async fn health_handler(
-    State(service_islands): State<Arc<ServiceIslands>>,
-) -> impl IntoResponse {
+async fn health_handler(State(service_islands): State<Arc<ServiceIslands>>) -> impl IntoResponse {
     let (is_healthy, health_details) = service_islands.health_check_detailed().await;
 
     let status = if is_healthy { "healthy" } else { "unhealthy" };
@@ -177,7 +195,7 @@ async fn health_handler(
             "service": "web-server-report-websocket",
             "active_connections": service_islands.active_connections(),
             "details": health_details,
-        }))
+        })),
     )
 }
 
@@ -218,10 +236,15 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
 
                     // Broadcast to all WebSocket clients
                     if let Err(e) = service_islands.broadcast_to_websocket_clients(data).await {
-                        error!("❌ [LEADER] Failed to broadcast to WebSocket clients: {}", e);
+                        error!(
+                            "❌ [LEADER] Failed to broadcast to WebSocket clients: {}",
+                            e
+                        );
                     } else {
-                        info!("📡 [LEADER] Broadcasted to {} WebSocket clients",
-                              service_islands.active_connections());
+                        info!(
+                            "📡 [LEADER] Broadcasted to {} WebSocket clients",
+                            service_islands.active_connections()
+                        );
                     }
                 }
                 Err(e) => {
@@ -233,7 +256,9 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
             info!("👥 [FOLLOWER] Reading market data from cache...");
 
             // Try to get latest data from cache
-            match service_islands.cache_system.cache_manager()
+            match service_islands
+                .cache_system
+                .cache_manager()
                 .get("latest_market_data")
                 .await
             {
@@ -244,11 +269,19 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
                     match serde_json::from_value(data) {
                         Ok(dashboard_data) => {
                             // Broadcast to all WebSocket clients
-                            if let Err(e) = service_islands.broadcast_to_websocket_clients(dashboard_data).await {
-                                error!("❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}", e);
+                            if let Err(e) = service_islands
+                                .broadcast_to_websocket_clients(dashboard_data)
+                                .await
+                            {
+                                error!(
+                                    "❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}",
+                                    e
+                                );
                             } else {
-                                info!("📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients",
-                                      service_islands.active_connections());
+                                info!(
+                                    "📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients",
+                                    service_islands.active_connections()
+                                );
                             }
                         }
                         Err(e) => {
@@ -257,7 +290,9 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
                     }
                 }
                 Ok(None) => {
-                    warn!("⚠️ [FOLLOWER] No cached data available yet (leader may still be fetching)");
+                    warn!(
+                        "⚠️ [FOLLOWER] No cached data available yet (leader may still be fetching)"
+                    );
                 }
                 Err(e) => {
                     error!("❌ [FOLLOWER] Failed to read from cache: {}", e);

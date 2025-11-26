@@ -7,7 +7,6 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-
 // ============================================================================
 // Crypto Price Data (Internal API format)
 // ============================================================================
@@ -82,7 +81,6 @@ pub struct StockIndex {
     pub percent_change: f64,
 }
 
-
 // ============================================================================
 // Server Messages (Server → Client)
 // ============================================================================
@@ -120,7 +118,6 @@ impl ServerMessage {
         serde_json::to_string(self)
     }
 }
-
 
 // ============================================================================
 // Server Message Payloads
@@ -275,7 +272,6 @@ impl DashboardUpdatePayload {
             source: source.to_string(),
         }
     }
-
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

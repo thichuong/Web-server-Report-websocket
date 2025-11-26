@@ -2,12 +2,12 @@
 //!
 //! This module contains all the cryptocurrency price fetching methods with caching.
 
+use super::aggregator_core::ApiAggregator;
+use crate::dto::websocket::CryptoPrice;
 use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tracing::{info, debug, warn};
-use super::aggregator_core::ApiAggregator;
-use crate::dto::websocket::CryptoPrice;
+use tracing::{debug, info, warn};
 
 impl ApiAggregator {
     /// Fetch all crypto prices with type-safe automatic caching
@@ -18,7 +18,10 @@ impl ApiAggregator {
     /// Each value is a strongly-typed `CryptoPrice` with `price_usd` and `change_24h`
     ///
     /// `force_refresh`: If true, bypasses cache and forces API fetch, then updates cache
-    pub async fn fetch_all_crypto_prices_with_cache(&self, force_refresh: bool) -> Result<HashMap<String, CryptoPrice>> {
+    pub async fn fetch_all_crypto_prices_with_cache(
+        &self,
+        force_refresh: bool,
+    ) -> Result<HashMap<String, CryptoPrice>> {
         let cache_key = "multi_crypto_prices_realtime";
 
         // Handle force refresh: bypass cache and update
@@ -58,7 +61,7 @@ impl ApiAggregator {
         if let Some(ref cache) = self.cache_system {
             let market_api = Arc::clone(&self.market_api);
 
-                match cache.cache_manager.get_or_compute_typed(
+            match cache.cache_manager.get_or_compute_typed(
                 cache_key,
                 crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::realtime_strategy(),
                 || async move {

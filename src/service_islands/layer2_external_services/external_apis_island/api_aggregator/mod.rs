@@ -8,8 +8,8 @@
 //! - `market_fetchers`: Market data fetching (global, FNG, RSI, indices) with caching
 
 pub mod aggregator_core;
-pub mod dashboard_aggregator;
 pub mod crypto_fetchers;
+pub mod dashboard_aggregator;
 pub mod market_fetchers;
 
 // Re-export the main ApiAggregator struct

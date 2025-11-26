@@ -9,17 +9,17 @@
 //! PERFORMANCE OPTIMIZATION: Rate limiting completely removed for maximum throughput.
 //! Cache logic handled by Layer 1, this layer focuses on pure API business logic.
 
-pub mod market_data_api;
 pub mod api_aggregator;
 pub mod circuit_breaker;
+pub mod market_data_api;
 
 use anyhow::Result;
 use std::sync::Arc;
 use tracing::info;
 
-use market_data_api::MarketDataApi;
-use api_aggregator::ApiAggregator;
 use crate::dto::websocket::DashboardData;
+use api_aggregator::ApiAggregator;
+use market_data_api::MarketDataApi;
 
 /// External APIs Island - Main entry point for Layer 2
 ///
@@ -40,26 +40,30 @@ impl ExternalApisIsland {
         info!("Initializing External APIs Island");
 
         // Initialize Market Data API (clone API keys as they're needed for aggregator too)
-        let market_api = Arc::new(MarketDataApi::with_all_keys(
-            taapi_secret.clone(),
-            cmc_api_key.clone(),
-            finnhub_api_key.clone()
-        ).await?);
+        let market_api = Arc::new(
+            MarketDataApi::with_all_keys(
+                taapi_secret.clone(),
+                cmc_api_key.clone(),
+                finnhub_api_key.clone(),
+            )
+            .await?,
+        );
 
         // Initialize API Aggregator (move the original values)
         let aggregator = if let Some(cache) = cache_system {
-            Arc::new(ApiAggregator::with_cache_and_all_keys(
-                taapi_secret,
-                cmc_api_key,
-                finnhub_api_key,
-                cache
-            ).await?)
+            Arc::new(
+                ApiAggregator::with_cache_and_all_keys(
+                    taapi_secret,
+                    cmc_api_key,
+                    finnhub_api_key,
+                    cache,
+                )
+                .await?,
+            )
         } else {
-            Arc::new(ApiAggregator::with_all_keys(
-                taapi_secret,
-                cmc_api_key,
-                finnhub_api_key
-            ).await?)
+            Arc::new(
+                ApiAggregator::with_all_keys(taapi_secret, cmc_api_key, finnhub_api_key).await?,
+            )
         };
 
         info!("External APIs Island initialized successfully");
@@ -80,7 +84,12 @@ impl ExternalApisIsland {
     /// Fetch dashboard summary v2 - Main Layer 2 functionality
     ///
     /// `force_realtime_refresh`: If true, forces refresh of `RealTime` cached data
-    pub async fn fetch_dashboard_summary_v2(&self, force_realtime_refresh: bool) -> Result<DashboardData> {
-        self.aggregator.fetch_dashboard_summary_v2(force_realtime_refresh).await
+    pub async fn fetch_dashboard_summary_v2(
+        &self,
+        force_realtime_refresh: bool,
+    ) -> Result<DashboardData> {
+        self.aggregator
+            .fetch_dashboard_summary_v2(force_realtime_refresh)
+            .await
     }
 }

@@ -7,13 +7,13 @@ pub mod layer1_infrastructure;
 pub mod layer2_external_services;
 pub mod layer3_communication;
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
+use std::sync::Arc;
 
+use crate::dto::websocket::DashboardData;
 use layer1_infrastructure::{CacheSystemIsland, LeaderElectionService};
 use layer2_external_services::ExternalApisIsland;
 use layer3_communication::WebSocketServiceIsland;
-use crate::dto::websocket::DashboardData;
 
 /// WebSocket Service Islands Registry
 ///
@@ -54,17 +54,15 @@ impl ServiceIslands {
 
         // Initialize Leader Election Service
         println!("🎖️ Initializing Leader Election Service...");
-        let redis_url = std::env::var("REDIS_URL")
-            .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
         // Generate unique node ID from Railway or UUID
         let node_id = std::env::var("RAILWAY_REPLICA_ID")
             .or_else(|_| std::env::var("RAILWAY_INSTANCE_ID"))
             .unwrap_or_else(|_| format!("ws-{}", uuid::Uuid::new_v4()));
 
-        let leader_election = Arc::new(
-            LeaderElectionService::new(&redis_url, node_id).await?
-        );
+        let leader_election = Arc::new(LeaderElectionService::new(&redis_url, node_id).await?);
         let is_leader = Arc::new(AtomicBool::new(false));
 
         // Spawn background leadership monitoring task
@@ -80,7 +78,8 @@ impl ServiceIslands {
 
         // Initialize Layer 2: External Services (depends on Layer 1 - Cache System)
         println!("🌐 Initializing Layer 2: External APIs Island with Cache...");
-        let taapi_secret = std::env::var("TAAPI_SECRET").unwrap_or_else(|_| "default_secret".to_string());
+        let taapi_secret =
+            std::env::var("TAAPI_SECRET").unwrap_or_else(|_| "default_secret".to_string());
         let cmc_api_key = std::env::var("CMC_API_KEY").ok();
         let finnhub_api_key = std::env::var("FINNHUB_API_KEY").ok();
 
@@ -96,12 +95,15 @@ impl ServiceIslands {
             println!("⚠️ No Finnhub API key - US stock indices will be unavailable");
         }
 
-        let external_apis = Arc::new(ExternalApisIsland::with_cache_and_all_keys(
-            taapi_secret,
-            cmc_api_key,
-            finnhub_api_key,
-            Some(Arc::clone(&cache_system))
-        ).await?);
+        let external_apis = Arc::new(
+            ExternalApisIsland::with_cache_and_all_keys(
+                taapi_secret,
+                cmc_api_key,
+                finnhub_api_key,
+                Some(Arc::clone(&cache_system)),
+            )
+            .await?,
+        );
         println!("✅ External APIs Island initialized!");
 
         // Initialize Layer 3: Communication (WebSocket)
@@ -111,8 +113,9 @@ impl ServiceIslands {
         let websocket_service = Arc::new(
             WebSocketServiceIsland::with_external_apis_and_cache(
                 Arc::clone(&external_apis),
-                Arc::clone(&cache_system)
-            ).await?
+                Arc::clone(&cache_system),
+            )
+            .await?,
         );
         println!("✅ WebSocket Service Island initialized!");
 
@@ -133,18 +136,27 @@ impl ServiceIslands {
     }
 
     /// Fetch market data from External APIs and publish to Redis Streams
-    pub async fn fetch_and_publish_market_data(&self, force_refresh: bool) -> Result<DashboardData, anyhow::Error> {
+    pub async fn fetch_and_publish_market_data(
+        &self,
+        force_refresh: bool,
+    ) -> Result<DashboardData, anyhow::Error> {
         // Fetch data directly from External APIs
-        let data = self.external_apis
+        let data = self
+            .external_apis
             .fetch_dashboard_summary_v2(force_refresh)
             .await?;
 
         // Store in cache for main service to read
         // Serialize DashboardData to JSON Value for cache storage
         if let Ok(cache_value) = serde_json::to_value(&data) {
-            if let Err(e) = self.cache_system.cache_manager()
-                .set_with_strategy("latest_market_data", cache_value,
-                    layer1_infrastructure::cache_system_island::cache_manager::realtime_strategy())
+            if let Err(e) = self
+                .cache_system
+                .cache_manager()
+                .set_with_strategy(
+                    "latest_market_data",
+                    cache_value,
+                    layer1_infrastructure::cache_system_island::cache_manager::realtime_strategy(),
+                )
                 .await
             {
                 tracing::warn!("Failed to cache market data: {}", e);
@@ -178,14 +190,20 @@ impl ServiceIslands {
     }
 
     /// Broadcast data to all connected WebSocket clients
-    pub async fn broadcast_to_websocket_clients(&self, data: DashboardData) -> Result<(), anyhow::Error> {
+    pub async fn broadcast_to_websocket_clients(
+        &self,
+        data: DashboardData,
+    ) -> Result<(), anyhow::Error> {
         // Use strongly-typed ServerMessage for consistency and type safety
         // This produces {"type": "DashboardUpdate", "data": ..., "timestamp": ..., "source": ...}
         let payload = crate::dto::websocket::DashboardUpdatePayload::new(data, "external_apis");
         let message = crate::dto::websocket::ServerMessage::DashboardUpdate(Box::new(payload));
-        
+
         let data_str = message.to_json_string()?;
-        self.websocket_service.broadcast_service.broadcast(data_str).await;
+        self.websocket_service
+            .broadcast_service
+            .broadcast(data_str)
+            .await;
         Ok(())
     }
 
@@ -215,14 +233,44 @@ impl ServiceIslands {
             println!("✅ All WebSocket Service Islands are healthy!");
         } else if core_healthy {
             println!("⚠️ Core services healthy, but External APIs are degraded");
-            println!("   Cache System Island: {}", if cache_system_healthy { "✅" } else { "❌" });
-            println!("   External APIs Island: {}", if external_apis_healthy { "✅" } else { "⚠️ degraded" });
-            println!("   WebSocket Service Island: {}", if websocket_service_healthy { "✅" } else { "❌" });
+            println!(
+                "   Cache System Island: {}",
+                if cache_system_healthy { "✅" } else { "❌" }
+            );
+            println!(
+                "   External APIs Island: {}",
+                if external_apis_healthy {
+                    "✅"
+                } else {
+                    "⚠️ degraded"
+                }
+            );
+            println!(
+                "   WebSocket Service Island: {}",
+                if websocket_service_healthy {
+                    "✅"
+                } else {
+                    "❌"
+                }
+            );
         } else {
             println!("❌ Core WebSocket Service Islands are unhealthy!");
-            println!("   Cache System Island: {}", if cache_system_healthy { "✅" } else { "❌" });
-            println!("   External APIs Island: {}", if external_apis_healthy { "✅" } else { "❌" });
-            println!("   WebSocket Service Island: {}", if websocket_service_healthy { "✅" } else { "❌" });
+            println!(
+                "   Cache System Island: {}",
+                if cache_system_healthy { "✅" } else { "❌" }
+            );
+            println!(
+                "   External APIs Island: {}",
+                if external_apis_healthy { "✅" } else { "❌" }
+            );
+            println!(
+                "   WebSocket Service Island: {}",
+                if websocket_service_healthy {
+                    "✅"
+                } else {
+                    "❌"
+                }
+            );
         }
 
         let details = serde_json::json!({

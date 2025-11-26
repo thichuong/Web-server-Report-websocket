@@ -12,27 +12,27 @@ use tokio::sync::RwLock;
 #[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum CircuitState {
-    Closed,     // Normal operation
-    Open,       // Circuit is open, requests are blocked
-    HalfOpen,   // Testing if service has recovered
+    Closed,   // Normal operation
+    Open,     // Circuit is open, requests are blocked
+    HalfOpen, // Testing if service has recovered
 }
 
 /// Circuit breaker configuration
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct CircuitBreakerConfig {
-    pub failure_threshold: usize,      // Number of failures to open circuit
-    pub success_threshold: usize,      // Number of successes to close circuit
-    pub timeout_seconds: u64,          // Time to wait before trying half-open
-    pub reset_timeout_seconds: u64,    // Time to fully reset after recovery
+    pub failure_threshold: usize,   // Number of failures to open circuit
+    pub success_threshold: usize,   // Number of successes to close circuit
+    pub timeout_seconds: u64,       // Time to wait before trying half-open
+    pub reset_timeout_seconds: u64, // Time to fully reset after recovery
 }
 
 impl Default for CircuitBreakerConfig {
     fn default() -> Self {
         Self {
-            failure_threshold: 5,      // Open after 5 failures
-            success_threshold: 3,      // Close after 3 successes
-            timeout_seconds: 60,       // Wait 1 minute before testing
+            failure_threshold: 5,       // Open after 5 failures
+            success_threshold: 3,       // Close after 3 successes
+            timeout_seconds: 60,        // Wait 1 minute before testing
             reset_timeout_seconds: 300, // Reset completely after 5 minutes
         }
     }
@@ -53,11 +53,10 @@ struct CircuitBreakerTracker {
     total_failures: usize,
 }
 
-impl CircuitBreakerTracker {
-}
+impl CircuitBreakerTracker {}
 
 /// Circuit Breaker
-/// 
+///
 /// Implements the circuit breaker pattern to handle failing external services gracefully.
 #[allow(dead_code)]
 pub struct CircuitBreaker {
@@ -67,5 +66,4 @@ pub struct CircuitBreaker {
     start_time: Instant,
 }
 
-impl CircuitBreaker {
-}
+impl CircuitBreaker {}

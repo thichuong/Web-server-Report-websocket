@@ -7,6 +7,5 @@ pub mod websocket;
 // Re-export commonly used types
 #[allow(unused_imports)]
 pub use websocket::{
-    ServerMessage, DashboardData, DashboardUpdatePayload,
-    CryptoPrice, UsStockIndices, StockIndex,
+    CryptoPrice, DashboardData, DashboardUpdatePayload, ServerMessage, StockIndex, UsStockIndices,
 };

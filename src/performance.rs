@@ -2,9 +2,9 @@
 //!
 //! Provides optimized HTTP clients and performance utilities.
 
-use std::time::Duration;
-use std::sync::LazyLock;
 use reqwest::Client;
+use std::sync::LazyLock;
+use std::time::Duration;
 
 /// Optimized HTTP client with connection pooling and timeouts
 ///

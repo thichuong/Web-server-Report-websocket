@@ -1,9 +1,9 @@
 //! Message Handler Component
-//! 
+//!
 //! This component handles real-time message processing for WebSocket communications.
 
 /// Message Handler
-/// 
+///
 /// Manages real-time message processing and WebSocket message handling.
 /// Processes incoming messages, formats outgoing messages, and handles message routing.
 pub struct MessageHandler {
@@ -23,7 +23,7 @@ impl MessageHandler {
             // Initialize component
         }
     }
-    
+
     /// Health check for message handler
     #[allow(clippy::unused_async)]
     pub async fn health_check(&self) -> bool {

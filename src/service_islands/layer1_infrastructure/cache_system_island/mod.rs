@@ -3,24 +3,21 @@
 //! This module now wraps the multi-tier-cache library using the Deref pattern.
 //! All cache functionality is provided by the external library with zero-cost abstraction.
 
-use std::sync::Arc;
-use std::ops::Deref;
 use anyhow::Result;
+use std::ops::Deref;
+use std::sync::Arc;
 
 // Import and re-export from multi-tier-cache library
-pub use multi_tier_cache::{
-    CacheSystem as LibraryCacheSystem,
-    CacheManager,
-};
+pub use multi_tier_cache::{CacheManager, CacheSystem as LibraryCacheSystem};
 
 // Re-export stats struct for backward compatibility if needed
 #[allow(unused_imports)]
 pub use multi_tier_cache::CacheManagerStats;
 
 // Module declarations (now just re-export files that themselves re-export from library)
+pub mod cache_manager;
 pub mod l1_cache;
 pub mod l2_cache;
-pub mod cache_manager;
 
 /// Cache System Island - Two-tier caching system
 ///

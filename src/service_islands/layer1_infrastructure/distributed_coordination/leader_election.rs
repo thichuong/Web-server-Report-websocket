@@ -52,8 +52,8 @@ impl LeaderElectionService {
     /// ).await?;
     /// ```
     pub async fn new(redis_url: &str, node_id: String) -> Result<Self> {
-        let redis_client = Client::open(redis_url)
-            .context("Failed to create Redis client for leader election")?;
+        let redis_client =
+            Client::open(redis_url).context("Failed to create Redis client for leader election")?;
 
         // Test connection
         let mut conn = redis_client
@@ -67,10 +67,7 @@ impl LeaderElectionService {
             .await
             .context("Failed to ping Redis")?;
 
-        info!(
-            "Leader election service initialized for node: {}",
-            node_id
-        );
+        info!("Leader election service initialized for node: {}", node_id);
 
         Ok(Self {
             redis_client,
@@ -117,7 +114,10 @@ impl LeaderElectionService {
         if acquired {
             info!("🎖️  Node {} acquired LEADERSHIP", self.node_id);
         } else {
-            debug!("Node {} failed to acquire leadership (another node is leader)", self.node_id);
+            debug!(
+                "Node {} failed to acquire leadership (another node is leader)",
+                self.node_id
+            );
         }
 
         Ok(acquired)
@@ -280,7 +280,6 @@ impl LeaderElectionService {
             }
         }
     }
-
 }
 
 #[cfg(test)]
