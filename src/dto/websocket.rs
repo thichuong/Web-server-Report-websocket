@@ -56,31 +56,39 @@ impl Default for CryptoPrice {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct UsStockIndices {
-    /// S&P 500 index data
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub sp500: Option<StockIndex>,
+    /// S&P 500 index data (SPY)
+    #[serde(rename = "SPY", skip_serializing_if = "Option::is_none")]
+    pub spy: Option<StockIndex>,
 
-    /// NASDAQ composite index data
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub nasdaq: Option<StockIndex>,
+    /// NASDAQ 100 index data (QQQM)
+    #[serde(rename = "QQQM", skip_serializing_if = "Option::is_none")]
+    pub qqqm: Option<StockIndex>,
 
-    /// Dow Jones Industrial Average data
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub dow_jones: Option<StockIndex>,
+    /// Dow Jones Industrial Average data (DIA)
+    #[serde(rename = "DIA", skip_serializing_if = "Option::is_none")]
+    pub dia: Option<StockIndex>,
 }
 
 /// Individual stock index data
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct StockIndex {
     /// Current index value
-    pub current_value: f64,
+    pub price: f64,
 
     /// Absolute change
     pub change: f64,
 
     /// Percentage change
-    pub percent_change: f64,
+    pub change_percent: f64,
+
+    /// Status of the data (e.g., "success", "failed")
+    #[serde(default = "default_status")]
+    pub status: String,
+}
+
+fn default_status() -> String {
+    "unknown".to_string()
 }
 
 // ============================================================================
