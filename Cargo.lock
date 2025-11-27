@@ -1084,9 +1084,9 @@ dependencies = [
 
 [[package]]
 name = "multi-tier-cache"
-version = "0.5.4"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "318a7cb41756e1af2f0bca6a1cfc2aea37078134f8d1ed0dcb4b7e4d9777c93f"
+checksum = "aa62208d62c4df672cd2bfe132823826ca145b56203b10d05a0ce56c041ec192"
 dependencies = [
  "anyhow",
  "async-trait",
