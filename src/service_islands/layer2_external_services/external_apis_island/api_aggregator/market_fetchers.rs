@@ -21,7 +21,7 @@ impl ApiAggregator {
 
             cache.cache_manager.get_or_compute_typed(
                 "global_coingecko_1h",
-                crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::CacheStrategy::MediumTerm, // 1 hour
+                crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::CacheStrategy::LongTerm, // 1 hour
                 || async move {
                     debug!("Fetching global data from API");
                     let data = market_api.fetch_global_data().await?;

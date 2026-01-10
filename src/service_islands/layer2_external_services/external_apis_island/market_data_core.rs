@@ -2,13 +2,12 @@
 //
 // This module contains the core MarketDataApi struct and its constructor methods.
 
-use reqwest::Client;
-use anyhow::Result;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use tracing::{info, warn, error};
 use crate::performance::OPTIMIZED_HTTP_CLIENT;
-
+use anyhow::Result;
+use reqwest::Client;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::Arc;
+use tracing::{error, info, warn};
 
 /// Market Data API
 ///
@@ -23,6 +22,10 @@ pub struct MarketDataApi {
     pub successful_calls: Arc<AtomicUsize>,
     pub failed_calls: Arc<AtomicUsize>,
     pub last_call_timestamp: Arc<AtomicU64>,
+    pub last_cmc_call: Arc<AtomicU64>,
+    pub last_rsi_call: Arc<AtomicU64>,
+    pub last_finnhub_call: Arc<AtomicU64>,
+    pub last_coingecko_call: Arc<AtomicU64>,
 }
 
 impl MarketDataApi {
@@ -51,7 +54,7 @@ impl MarketDataApi {
     pub async fn with_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
-        finnhub_api_key: Option<String>
+        finnhub_api_key: Option<String>,
     ) -> Result<Self> {
         info!("Initializing Market Data API");
 
@@ -67,6 +70,10 @@ impl MarketDataApi {
             successful_calls: Arc::new(AtomicUsize::new(0)),
             failed_calls: Arc::new(AtomicUsize::new(0)),
             last_call_timestamp: Arc::new(AtomicU64::new(0)),
+            last_cmc_call: Arc::new(AtomicU64::new(0)),
+            last_rsi_call: Arc::new(AtomicU64::new(0)),
+            last_finnhub_call: Arc::new(AtomicU64::new(0)),
+            last_coingecko_call: Arc::new(AtomicU64::new(0)),
         })
     }
 
@@ -93,7 +100,8 @@ impl MarketDataApi {
     /// Test API connectivity
     async fn test_api_connectivity(&self) -> Result<()> {
         // Simple test call to Binance ping endpoint
-        let response = self.client
+        let response = self
+            .client
             .get("https://api.binance.com/api/v3/ping")
             .send()
             .await?;
@@ -101,7 +109,10 @@ impl MarketDataApi {
         if response.status().is_success() {
             Ok(())
         } else {
-            Err(anyhow::anyhow!("API connectivity test failed with status: {}", response.status()))
+            Err(anyhow::anyhow!(
+                "API connectivity test failed with status: {}",
+                response.status()
+            ))
         }
     }
 
@@ -113,7 +124,7 @@ impl MarketDataApi {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or(std::time::Duration::from_secs(0))
                 .as_secs(),
-            Ordering::Relaxed
+            Ordering::Relaxed,
         );
     }
 

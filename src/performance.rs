@@ -11,6 +11,7 @@ use std::time::Duration;
 /// Falls back to a default client if the optimized configuration fails to build.
 pub static OPTIMIZED_HTTP_CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
+        .user_agent("Mozilla/5.0 (compatible; CryptoReportBot/1.0; +http://example.com)")
         .pool_max_idle_per_host(10)
         .timeout(Duration::from_secs(30))
         .connect_timeout(Duration::from_secs(10))

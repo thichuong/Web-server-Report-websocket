@@ -29,22 +29,24 @@ impl MarketDataApi {
 
     /// Fetch multiple crypto prices from Binance using multi-symbol endpoint
     async fn fetch_multi_crypto_prices_binance(&self) -> Result<HashMap<String, (f64, f64)>> {
-        let response_json = self.fetch_with_retry(
-            BINANCE_MULTI_PRICE_URL,
-            |response_data: BinanceMultiTickerResponse| {
-                // Just convert the vec to JSON
-                serde_json::to_value(&response_data).unwrap_or(serde_json::json!([]))
-            }
-        ).await?;
+        let response_json = self
+            .fetch_with_retry(
+                BINANCE_MULTI_PRICE_URL,
+                |response_data: BinanceMultiTickerResponse| {
+                    // Just convert the vec to JSON
+                    serde_json::to_value(&response_data).unwrap_or(serde_json::json!([]))
+                },
+            )
+            .await?;
 
         // Parse the JSON array into our HashMap
         let tickers: BinanceMultiTickerResponse = serde_json::from_value(response_json)?;
         let mut prices = HashMap::new();
-        
+
         for ticker in tickers {
             let price_usd: f64 = ticker.last_price.parse().unwrap_or(0.0);
             let change_24h: f64 = ticker.price_change_percent.parse().unwrap_or(0.0);
-            
+
             // Map symbol to coin name
             let coin_name = match ticker.symbol.as_str() {
                 "BTCUSDT" => "BTC",
@@ -56,7 +58,7 @@ impl MarketDataApi {
                 "BNBUSDT" => "BNB",
                 _ => continue, // Skip unknown symbols
             };
-            
+
             prices.insert(coin_name.to_string(), (price_usd, change_24h));
         }
 
@@ -84,16 +86,21 @@ impl MarketDataApi {
     ///
     /// # Errors
     /// Returns error if all retry attempts fail or response parsing fails
-    pub async fn fetch_with_retry<T, F>(&self, url: &str, transformer: F) -> Result<serde_json::Value>
+    pub async fn fetch_with_retry<T, F>(
+        &self,
+        url: &str,
+        transformer: F,
+    ) -> Result<serde_json::Value>
     where
         T: for<'de> serde::Deserialize<'de>,
         F: Fn(T) -> serde_json::Value,
     {
         let mut attempts = 0;
-        let max_attempts = 3;
+        let max_attempts = 1;
 
         while attempts < max_attempts {
-            let response = self.client
+            let response = self
+                .client
                 .get(url)
                 .header("Accept", "application/json")
                 .send()
@@ -119,7 +126,9 @@ impl MarketDataApi {
                     // Rate limiting - implement exponential backoff
                     attempts += 1;
                     if attempts >= max_attempts {
-                        return Err(anyhow::anyhow!("Rate limit exceeded after {max_attempts} attempts for URL: {url}"));
+                        return Err(anyhow::anyhow!(
+                            "Rate limit exceeded after {max_attempts} attempts for URL: {url}"
+                        ));
                     }
 
                     let delay = std::time::Duration::from_millis(1000 * (2_u64.pow(attempts)));
@@ -127,7 +136,9 @@ impl MarketDataApi {
                     tokio::time::sleep(delay).await;
                 }
                 status => {
-                    return Err(anyhow::anyhow!("API returned status: {status} for URL: {url}"));
+                    return Err(anyhow::anyhow!(
+                        "API returned status: {status} for URL: {url}"
+                    ));
                 }
             }
         }
