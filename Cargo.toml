@@ -62,13 +62,13 @@ dashmap = "5.5"        # Thread-safe HashMap
 num_cpus = "1.16"      # Detect CPU cores
 
 # Cache dependencies - Multi-tier cache system
-multi-tier-cache = "0.5.6"  # Unified cache library with type-safe database caching
+multi-tier-cache = "0.5.7"  # Unified cache library with type-safe database caching
 moka = { version = "0.12", features = ["future"] }  # L1 In-memory cache
 bb8-redis = "0.15"     # Redis connection pool
 
 # Constraint problematic dependencies
 base64ct = "=1.6.0"    # Pin to avoid edition2024 requirement
-backon = "=1.5.0"      # Pin to 1.5.0 to avoid edition2024 requirement
+backon = "1.6.0"      # Updated to 1.6.0 to resolve conflict with redis dependency
 futures = "0.3"        # Async utilities
 
 # UUID generation for instance IDs
