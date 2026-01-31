@@ -1,0 +1,78 @@
+name: Rust CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up specific Rust version
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache Cargo registry and build artifacts
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Build Release
+      run: cargo build --release --verbose
+
+    - name: Prepare Server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          # Stop running application to release file lock
+          pkill -f "web-server-report-websocket" || true
+          # Create directory
+          mkdir -p ~/Web-server-Report-websocket/target/release
+
+    - name: Deploy to Google VM
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        source: "target/release/web-server-report-websocket"
+        target: "~/Web-server-Report-websocket/target/release"
+        strip_components: 2 # Remove target/release/ prefix
+        overwrite: true
+        timeout: 30m
+        debug: true
+
+    - name: Run Application via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        command_timeout: 30m
+        script: |
+          # Ensure permissions
+          chmod +x ~/Web-server-Report-websocket/target/release/web-server-report-websocket
+          
+          echo "Starting application..."
+          # Change to project root so .env can be found
+          cd ~/Web-server-Report-websocket
+          # Start new instance in background with setsid to detach from shell
+          setsid ./target/release/web-server-report-websocket > app.log 2>&1 < /dev/null &
+          echo "Application started."
+          exit 0
