@@ -41,7 +41,7 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         script: |
           # Stop running application to release file lock
-          pkill -f "web-server-report-websocket" || true
+          pkill -f "[w]eb-server-report-websocket" || true
           # Create directory
           mkdir -p ~/Web-server-Report-websocket/target/release
 
