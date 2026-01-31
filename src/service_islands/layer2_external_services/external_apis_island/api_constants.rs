@@ -6,8 +6,8 @@
 
 // Binance APIs (Primary)
 // Multi-symbol endpoint - fetches all crypto prices in a single request (OPTIMIZED)
-pub const BINANCE_MULTI_PRICE_URL: &str = r#"https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT","ADAUSDT","LINKUSDT","BNBUSDT"]"#; // 10 sec cache (RealTime)
-pub const BINANCE_US_MULTI_PRICE_URL: &str = r#"https://api.binance.us/api/v3/ticker/24hr?symbols=["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT","ADAUSDT","LINKUSDT","BNBUSDT"]"#; // 10 sec cache (RealTime)
+pub const BINANCE_MULTI_PRICE_URL: &str = "https://api.binance.com/api/v3/ticker/24hr?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22LINKUSDT%22,%22BNBUSDT%22%5D"; // 10 sec cache (RealTime)
+pub const BINANCE_US_MULTI_PRICE_URL: &str = "https://api.binance.us/api/v3/ticker/24hr?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22LINKUSDT%22,%22BNBUSDT%22%5D"; // 10 sec cache (RealTime)
 
 // CoinGecko APIs (Fallback)
 pub const BASE_GLOBAL_URL: &str = "https://api.coingecko.com/api/v3/global"; // 30 sec cache
