@@ -17,6 +17,7 @@ pub struct MarketDataApi {
     pub taapi_secret: String,
     pub cmc_api_key: Option<String>,
     pub finnhub_api_key: Option<String>,
+    pub binance_url: String,
     // Statistics tracking
     pub api_calls_count: Arc<AtomicUsize>,
     pub successful_calls: Arc<AtomicUsize>,
@@ -61,11 +62,15 @@ impl MarketDataApi {
         // Use the optimized HTTP client from the performance module
         let client = OPTIMIZED_HTTP_CLIENT.clone();
 
+        // Check Binance connectivity to decide which URL to use
+        let binance_url = Self::check_binance_connectivity(&client).await;
+
         Ok(Self {
             client,
             taapi_secret,
             cmc_api_key,
             finnhub_api_key,
+            binance_url,
             api_calls_count: Arc::new(AtomicUsize::new(0)),
             successful_calls: Arc::new(AtomicUsize::new(0)),
             failed_calls: Arc::new(AtomicUsize::new(0)),
@@ -75,6 +80,59 @@ impl MarketDataApi {
             last_finnhub_call: Arc::new(AtomicU64::new(0)),
             last_coingecko_call: Arc::new(AtomicU64::new(0)),
         })
+    }
+
+    /// Check Binance connectivity and return the appropriate URL
+    async fn check_binance_connectivity(client: &Client) -> String {
+        info!("Checking Binance API connectivity...");
+
+        // Try Global URL first
+        // We use a simple ping or just check the multi-price URL with a HEAD request or simple GET
+        // Using the actual endpoint we want to use is safer to detect 451
+        let url = BINANCE_MULTI_PRICE_URL;
+
+        match client.get(url).send().await {
+            Ok(response) => {
+                if response.status() == 451 {
+                    warn!("Binance Global API returned 451 (Unavailable for legal reasons/Geoblocked). Switching to Binance US.");
+                    BINANCE_US_MULTI_PRICE_URL.to_string()
+                } else if response.status().is_success() {
+                    info!("Binance Global API is accessible.");
+                    BINANCE_MULTI_PRICE_URL.to_string()
+                } else {
+                    // Start up failed for other reasons, but we default to Global if it's not explicitly blocked
+                    warn!(
+                        "Binance Global API returned status: {}. Defaulting to Global URL.",
+                        response.status()
+                    );
+                    BINANCE_MULTI_PRICE_URL.to_string()
+                }
+            }
+            Err(e) => {
+                warn!(
+                    "Failed to connect to Binance Global API: {}. Checking Binance US...",
+                    e
+                );
+                // If global fails completely (dns or connection refused), try US
+                // If US also fails, we default to Global (or maybe US? Global seems safer default)
+                let us_url = BINANCE_US_MULTI_PRICE_URL;
+                match client.get(us_url).send().await {
+                    Ok(response) => {
+                        if response.status().is_success() {
+                            info!("Binance US API is accessible. Switching to Binance US.");
+                            BINANCE_US_MULTI_PRICE_URL.to_string()
+                        } else {
+                            warn!("Binance US API also returned status: {}. Defaulting to Global URL.", response.status());
+                            BINANCE_MULTI_PRICE_URL.to_string()
+                        }
+                    }
+                    Err(e_us) => {
+                        error!("Failed to connect to Binance US API as well: {}. Defaulting to Global URL.", e_us);
+                        BINANCE_MULTI_PRICE_URL.to_string()
+                    }
+                }
+            }
+        }
     }
 
     /// Health check for Market Data API

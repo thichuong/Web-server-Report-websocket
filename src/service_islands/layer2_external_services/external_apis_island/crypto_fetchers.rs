@@ -31,7 +31,7 @@ impl MarketDataApi {
     async fn fetch_multi_crypto_prices_binance(&self) -> Result<HashMap<String, (f64, f64)>> {
         let response_json = self
             .fetch_with_retry(
-                BINANCE_MULTI_PRICE_URL,
+                &self.binance_url,
                 |response_data: BinanceMultiTickerResponse| {
                     // Just convert the vec to JSON
                     serde_json::to_value(&response_data).unwrap_or(serde_json::json!([]))
