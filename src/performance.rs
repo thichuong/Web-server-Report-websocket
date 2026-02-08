@@ -21,3 +21,18 @@ pub static OPTIMIZED_HTTP_CLIENT: LazyLock<Client> = LazyLock::new(|| {
             Client::new()
         })
 });
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_optimized_http_client_initialization() {
+        // Ensure the client initializes without panicking
+        let client = &*OPTIMIZED_HTTP_CLIENT;
+        // We can't easily check internal configuration, but we can verify it's usable
+        // (This just checks it doesn't crash on access)
+        let _ = client; 
+        assert!(true);
+    }
+}

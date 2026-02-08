@@ -95,6 +95,19 @@ RUST_LOG=debug cargo run
 cargo build --release
 ```
 
+## Testing
+
+Run the test suite to verify functionality:
+
+```bash
+# Run all tests (unit and integration)
+cargo test
+
+# Run code quality checks
+cargo check
+cargo clippy
+```
+
 ## Docker
 
 ```bash
