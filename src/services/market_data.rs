@@ -18,8 +18,8 @@ use std::sync::Arc;
 use tracing::info;
 
 use crate::dto::websocket::DashboardData;
-use api_aggregator::ApiAggregator;
-use market_data_api::MarketDataApi;
+pub use api_aggregator::ApiAggregator;
+pub use market_data_api::MarketDataApi;
 
 /// External APIs Island - Main entry point for Layer 2
 ///
@@ -38,7 +38,7 @@ impl ExternalApisIsland {
         taapi_secret: String,
         cmc_api_key: Option<String>,
         finnhub_api_key: Option<String>,
-        cache_system: Option<Arc<crate::service_islands::layer1_infrastructure::CacheSystemIsland>>,
+        cache_system: Option<Arc<crate::infrastructure::cache::CacheSystem>>,
     ) -> Result<Self> {
         info!("Initializing External APIs Island");
 

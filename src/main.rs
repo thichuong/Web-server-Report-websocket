@@ -1,31 +1,25 @@
 #![warn(clippy::pedantic)]
 use anyhow::Context;
-use axum::{
-    extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
-        State,
-    },
-    response::IntoResponse,
-    routing::get,
-    Router,
-};
-use dotenvy::dotenv;
-use std::{env, net::SocketAddr, sync::Arc, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{signal, time::interval};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::AtomicUsize;
 
-mod dto;
-mod performance;
-mod service_islands;
+pub mod config;
+pub mod dto;
+pub mod performance;
+pub mod infrastructure;
+pub mod services;
+pub mod api;
 
-use service_islands::ServiceIslands;
+use config::app_env::AppConfig;
+use api::state::AppState;
+use api::routes::create_router;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    // Initialize environment variables
-    dotenv().ok();
-
     // Initialize tracing
     tracing_subscriber::registry()
         .with(
@@ -35,187 +29,99 @@ async fn main() -> Result<(), anyhow::Error> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    info!("🚀 Starting WebSocket Service with Service Islands Architecture...");
+    info!("🚀 Starting WebSocket Service...");
 
-    // Initialize Service Islands Architecture
-    info!("🏝️ Initializing Service Islands Architecture...");
-    let service_islands = Arc::new(ServiceIslands::initialize().await?);
+    let app_config = AppConfig::load();
 
-    // Perform initial health check
-    info!("🔍 Performing initial health check...");
-    let (is_healthy, health_details) = service_islands.health_check_detailed().await;
+    // Initialize Cache
+    info!("🏗️ Initializing Cache System...");
+    let cache_system = Arc::new(infrastructure::cache::CacheSystem::new().await?);
+
+    // Initialize Leader Election
+    info!("🎖️ Initializing Leader Election Service...");
+    let node_id = std::env::var("RAILWAY_REPLICA_ID")
+        .or_else(|_| std::env::var("RAILWAY_INSTANCE_ID"))
+        .unwrap_or_else(|_| format!("ws-{}", uuid::Uuid::new_v4()));
+    let leader_election = Arc::new(services::leader_election::LeaderElectionService::new(&app_config.redis_url, node_id).await?);
+    let is_leader = Arc::new(AtomicBool::new(false));
+
+    tokio::spawn({
+        let leader_election = leader_election.clone();
+        let is_leader = is_leader.clone();
+        async move {
+            leader_election.monitor_leadership(is_leader).await;
+        }
+    });
+
+    // Initialize External APIs
+    info!("🌐 Initializing External APIs...");
+    let external_apis = Arc::new(services::market_data::ExternalApisIsland::with_cache_and_all_keys(
+        app_config.taapi_secret.clone(),
+        app_config.cmc_api_key.clone(),
+        app_config.finnhub_api_key.clone(),
+        Some(cache_system.clone()),
+    ).await?);
+
+    // Initialize Broadcaster
+    info!("📡 Initializing WebSocket Broadcaster...");
+    let broadcaster = Arc::new(services::broadcaster::WebSocketServiceIsland::with_external_apis_and_cache(
+        external_apis.clone(),
+        cache_system.clone(),
+    ).await?);
+
+    // Build AppState
+    let app_state = Arc::new(AppState {
+        cache: cache_system,
+        external_apis,
+        broadcaster,
+        leader_election: leader_election.clone(),
+        is_leader,
+        active_ws_connections: Arc::new(AtomicUsize::new(0)),
+    });
+
+    let (is_healthy, health_details) = app_state.health_check_detailed().await;
     if is_healthy {
-        info!("✅ Service Islands Architecture is healthy!");
+        info!("✅ Service is healthy!");
     } else {
-        warn!("⚠️ Some Service Islands may have issues - continuing with startup...");
+        warn!("⚠️ Some services may have issues - continuing with startup...");
         warn!("Health details: {:?}", health_details);
     }
 
-    // Spawn background task for periodic market data fetching
-    let islands_clone = service_islands.clone();
+    let state_clone = app_state.clone();
+    let fetch_interval = app_config.fetch_interval;
     tokio::spawn(async move {
-        spawn_market_data_fetcher(islands_clone).await;
+        spawn_market_data_fetcher(state_clone, fetch_interval).await;
     });
 
-    // Create router with WebSocket endpoint
-    let app = create_router(service_islands.clone());
+    let app = create_router(app_state.clone());
 
-    // Start server
-    let host = env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let port: u16 = env::var("PORT")
-        .unwrap_or_else(|_| "8081".to_string())
-        .parse()
-        .context("PORT must be a valid number")?;
-
-    let addr: SocketAddr = format!("{host}:{port}")
+    let addr: SocketAddr = format!("{}:{}", app_config.host, app_config.port)
         .parse()
         .context("HOST and PORT must form a valid address")?;
 
     info!("🌐 WebSocket Service listening on ws://{}", addr);
-    info!("📡 WebSocket endpoint: ws://{}/ws", addr);
 
-    // Run server with graceful shutdown
     let server = axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .with_graceful_shutdown(shutdown_signal());
 
-    // Wait for server to finish
     server.await?;
 
-    // Gracefully release leadership on shutdown
     info!("🔓 Releasing leadership before shutdown...");
-    if let Err(e) = service_islands.leader_election.release_leadership().await {
+    if let Err(e) = app_state.leader_election.release_leadership().await {
         warn!("⚠️ Failed to release leadership: {}", e);
     } else {
         info!("✅ Leadership released successfully");
     }
 
     info!("👋 WebSocket service shutdown complete");
-
     Ok(())
 }
 
-/// Create the router with WebSocket endpoint
-fn create_router(service_islands: Arc<ServiceIslands>) -> Router {
-    Router::new()
-        .route("/ws", get(websocket_handler))
-        .route("/health", get(health_handler))
-        .with_state(service_islands)
-}
-
-/// WebSocket upgrade handler
-async fn websocket_handler(
-    ws: WebSocketUpgrade,
-    State(service_islands): State<Arc<ServiceIslands>>,
-) -> impl IntoResponse {
-    ws.on_upgrade(|socket| handle_websocket(socket, service_islands))
-}
-
-/// Handle individual WebSocket connection
-async fn handle_websocket(mut socket: WebSocket, service_islands: Arc<ServiceIslands>) {
-    use std::sync::atomic::Ordering;
-
-    // Increment connection counter
-    service_islands
-        .active_ws_connections
-        .fetch_add(1, Ordering::SeqCst);
-    let current_connections = service_islands.active_connections();
-    info!(
-        "➕ New WebSocket connection (total: {})",
-        current_connections
-    );
-
-    // Subscribe to broadcast channel
-    let mut rx = service_islands
-        .websocket_service
-        .broadcast_service
-        .subscribe();
-
-    // Send initial message
-    if socket
-        .send(Message::Text("Connected to WebSocket service".to_string()))
-        .await
-        .is_err()
-    {
-        info!("Failed to send initial message");
-        return;
-    }
-
-    // Handle incoming messages and broadcasts
-    loop {
-        tokio::select! {
-            // Receive broadcast messages
-            msg = rx.recv() => {
-                match msg {
-                    Ok(text) => {
-                        if socket.send(Message::Text(text)).await.is_err() {
-                            break;
-                        }
-                    }
-                    Err(_) => break,
-                }
-            }
-            // Receive client messages (we just ignore them for now)
-            Some(msg) = socket.recv() => {
-                if msg.is_err() {
-                    break;
-                }
-            }
-        }
-    }
-
-    // Decrement connection counter
-    service_islands
-        .active_ws_connections
-        .fetch_sub(1, Ordering::SeqCst);
-    let current_connections = service_islands.active_connections();
-    info!(
-        "➖ WebSocket connection closed (total: {})",
-        current_connections
-    );
-}
-
-/// Health check endpoint
-/// Returns OK (200) if core services are healthy (cache, websocket)
-/// External APIs being down won't fail the health check
-async fn health_handler(State(service_islands): State<Arc<ServiceIslands>>) -> impl IntoResponse {
-    let (is_healthy, health_details) = service_islands.health_check_detailed().await;
-
-    let status = if is_healthy { "healthy" } else { "unhealthy" };
-    let status_code = if is_healthy {
-        axum::http::StatusCode::OK
-    } else {
-        axum::http::StatusCode::SERVICE_UNAVAILABLE
-    };
-
-    (
-        status_code,
-        axum::Json(serde_json::json!({
-            "status": status,
-            "service": "web-server-report-websocket",
-            "active_connections": service_islands.active_connections(),
-            "details": health_details,
-        })),
-    )
-}
-
-/// Background task to fetch market data periodically
-///
-/// With leader election enabled:
-/// - Only the LEADER instance fetches from external APIs
-/// - Follower instances read from Redis cache
-/// - This reduces API calls and prevents rate limiting
-async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
+async fn spawn_market_data_fetcher(state: Arc<AppState>, fetch_interval: u64) {
     use std::sync::atomic::Ordering;
 
     info!("🔄 Starting periodic market data fetcher with leader election...");
-
-    // Read interval from environment variable (default: 5 seconds for real-time updates)
-    let fetch_interval = env::var("FETCH_INTERVAL_SECONDS")
-        .unwrap_or_else(|_| "5".to_string())
-        .parse::<u64>()
-        .unwrap_or(5);
-
     info!("⏱️ Market data fetch interval: {} seconds", fetch_interval);
 
     let mut interval_timer = interval(Duration::from_secs(fetch_interval));
@@ -223,28 +129,18 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
     loop {
         interval_timer.tick().await;
 
-        // Check if this instance is the leader
-        let is_leader = service_islands.is_leader.load(Ordering::Relaxed);
+        let is_leader = state.is_leader.load(Ordering::Relaxed);
 
         if is_leader {
-            // LEADER MODE: Fetch from API and cache
             info!("🎖️ [LEADER] Fetching market data from APIs...");
 
-            match service_islands.fetch_and_publish_market_data(true).await {
+            match state.fetch_and_publish_market_data(true).await {
                 Ok(data) => {
                     info!("✅ [LEADER] Market data fetched successfully from APIs");
-
-                    // Broadcast to all WebSocket clients
-                    if let Err(e) = service_islands.broadcast_to_websocket_clients(data).await {
-                        error!(
-                            "❌ [LEADER] Failed to broadcast to WebSocket clients: {}",
-                            e
-                        );
+                    if let Err(e) = state.broadcast_to_websocket_clients(data).await {
+                        error!("❌ [LEADER] Failed to broadcast to WebSocket clients: {}", e);
                     } else {
-                        info!(
-                            "📡 [LEADER] Broadcasted to {} WebSocket clients",
-                            service_islands.active_connections()
-                        );
+                        info!("📡 [LEADER] Broadcasted to {} WebSocket clients", state.active_connections());
                     }
                 }
                 Err(e) => {
@@ -252,36 +148,17 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
                 }
             }
         } else {
-            // FOLLOWER MODE: Read from cache only
             info!("👥 [FOLLOWER] Reading market data from cache...");
 
-            // Try to get latest data from cache
-            match service_islands
-                .cache_system
-                .cache_manager()
-                .get("latest_market_data")
-                .await
-            {
+            match state.cache.cache_manager().get("latest_market_data").await {
                 Ok(Some(data)) => {
                     info!("✅ [FOLLOWER] Market data loaded from cache");
-
-                    // Deserialize to DashboardData
                     match serde_json::from_value(data) {
                         Ok(dashboard_data) => {
-                            // Broadcast to all WebSocket clients
-                            if let Err(e) = service_islands
-                                .broadcast_to_websocket_clients(dashboard_data)
-                                .await
-                            {
-                                error!(
-                                    "❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}",
-                                    e
-                                );
+                            if let Err(e) = state.broadcast_to_websocket_clients(dashboard_data).await {
+                                error!("❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}", e);
                             } else {
-                                info!(
-                                    "📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients",
-                                    service_islands.active_connections()
-                                );
+                                info!("📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients", state.active_connections());
                             }
                         }
                         Err(e) => {
@@ -289,20 +166,13 @@ async fn spawn_market_data_fetcher(service_islands: Arc<ServiceIslands>) {
                         }
                     }
                 }
-                Ok(None) => {
-                    warn!(
-                        "⚠️ [FOLLOWER] No cached data available yet (leader may still be fetching)"
-                    );
-                }
-                Err(e) => {
-                    error!("❌ [FOLLOWER] Failed to read from cache: {}", e);
-                }
+                Ok(None) => warn!("⚠️ [FOLLOWER] No cached data available yet (leader may still be fetching)"),
+                Err(e) => error!("❌ [FOLLOWER] Failed to read from cache: {}", e),
             }
         }
     }
 }
 
-/// Graceful shutdown signal handler
 async fn shutdown_signal() {
     let ctrl_c = async {
         if let Err(e) = signal::ctrl_c().await {

@@ -1,6 +1,9 @@
+pub mod config;
+pub mod api;
 pub mod dto;
+pub mod infrastructure;
+pub mod services;
 pub mod performance;
-pub mod service_islands;
 
 pub use dto::{DashboardData, DashboardUpdatePayload, ServerMessage};
-pub use service_islands::ServiceIslands;
+

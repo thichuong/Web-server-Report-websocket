@@ -16,7 +16,7 @@ use anyhow::Result;
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 
-use crate::service_islands::layer2_external_services::external_apis_island::ExternalApisIsland;
+use crate::services::market_data::ExternalApisIsland;
 use broadcast_service::BroadcastService;
 use connection_manager::ConnectionManager;
 use handlers::WebSocketHandlers;
@@ -53,7 +53,7 @@ impl WebSocketServiceIsland {
     pub async fn with_external_apis_and_cache(
         _external_apis: Arc<ExternalApisIsland>,
         _cache_system: Arc<
-            crate::service_islands::layer1_infrastructure::cache_system_island::CacheSystemIsland,
+            crate::infrastructure::cache::CacheSystem,
         >,
     ) -> Result<Self> {
         info!("Initializing WebSocket Service Island with External APIs and Cache");
@@ -91,7 +91,7 @@ impl WebSocketServiceIsland {
     pub async fn with_grpc_client_and_cache(
         _layer2_grpc_client: Arc<String>, // Placeholder - not used
         _cache_system: Arc<
-            crate::service_islands::layer1_infrastructure::cache_system_island::CacheSystemIsland,
+            crate::infrastructure::cache::CacheSystem,
         >,
     ) -> Result<Self> {
         info!("Initializing WebSocket Service Island (websocket service doesn't use gRPC)");

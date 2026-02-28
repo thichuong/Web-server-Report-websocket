@@ -47,7 +47,7 @@ impl ApiAggregator {
                 match serde_json::to_value(&result) {
                     Ok(cache_value) => {
                         let _ = cache.cache_manager.set_with_strategy(cache_key, cache_value,
-                            crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::realtime_strategy()).await;
+                            crate::infrastructure::cache::realtime_strategy()).await;
                         debug!("All crypto prices cached after force refresh (RealTime - 30s TTL)");
                     }
                     Err(e) => {
@@ -66,7 +66,7 @@ impl ApiAggregator {
 
             match cache.cache_manager.get_or_compute_typed(
                 cache_key,
-                crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::realtime_strategy(),
+                crate::infrastructure::cache::realtime_strategy(),
                 || async move {
                     debug!("Fetching all crypto prices from API");
                     let raw_data = market_api.fetch_multi_crypto_prices().await?;

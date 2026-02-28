@@ -3,8 +3,8 @@
 //! This module contains the core `ApiAggregator` struct and its constructor methods.
 
 use crate::performance::OPTIMIZED_HTTP_CLIENT;
-use crate::service_islands::layer1_infrastructure::CacheSystemIsland;
-use crate::service_islands::layer2_external_services::external_apis_island::market_data_api::MarketDataApi;
+use crate::infrastructure::cache::CacheSystem;
+use crate::services::market_data::MarketDataApi;
 use anyhow::Result;
 use reqwest::Client;
 use std::sync::atomic::AtomicUsize;
@@ -18,7 +18,7 @@ use tracing::{debug, error, info};
 pub struct ApiAggregator {
     pub market_api: Arc<MarketDataApi>,
     pub client: Client,
-    pub cache_system: Option<Arc<CacheSystemIsland>>,
+    pub cache_system: Option<Arc<CacheSystem>>,
     // Statistics
     pub total_aggregations: Arc<AtomicUsize>,
     pub successful_aggregations: Arc<AtomicUsize>,
@@ -79,7 +79,7 @@ impl ApiAggregator {
     #[allow(dead_code)]
     pub async fn with_cache(
         taapi_secret: String,
-        cache_system: Arc<CacheSystemIsland>,
+        cache_system: Arc<CacheSystem>,
     ) -> Result<Self> {
         Self::with_cache_and_cmc(taapi_secret, None, cache_system).await
     }
@@ -91,7 +91,7 @@ impl ApiAggregator {
     pub async fn with_cache_and_cmc(
         taapi_secret: String,
         cmc_api_key: Option<String>,
-        cache_system: Arc<CacheSystemIsland>,
+        cache_system: Arc<CacheSystem>,
     ) -> Result<Self> {
         Self::with_cache_and_all_keys(taapi_secret, cmc_api_key, None, cache_system).await
     }
@@ -104,7 +104,7 @@ impl ApiAggregator {
         taapi_secret: String,
         cmc_api_key: Option<String>,
         finnhub_api_key: Option<String>,
-        cache_system: Arc<CacheSystemIsland>,
+        cache_system: Arc<CacheSystem>,
     ) -> Result<Self> {
         let mut aggregator =
             Self::with_all_keys(taapi_secret, cmc_api_key, finnhub_api_key).await?;

@@ -6,7 +6,7 @@
 use std::sync::Arc;
 use tracing::{error, info, warn};
 
-use crate::service_islands::layer2_external_services::external_apis_island::ExternalApisIsland;
+use crate::services::market_data::ExternalApisIsland;
 
 /// Market Data Streamer
 ///

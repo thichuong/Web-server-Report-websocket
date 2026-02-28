@@ -21,7 +21,7 @@ impl ApiAggregator {
 
             cache.cache_manager.get_or_compute_typed(
                 "global_coingecko_1h",
-                crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::CacheStrategy::LongTerm, // 1 hour
+                crate::infrastructure::cache::CacheStrategy::LongTerm, // 1 hour
                 || async move {
                     debug!("Fetching global data from API");
                     let data = market_api.fetch_global_data().await?;
@@ -48,7 +48,7 @@ impl ApiAggregator {
 
             cache.cache_manager.get_or_compute_typed(
                 "fng_alternative_5m",
-                crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::CacheStrategy::ShortTerm, // 5 minutes
+                crate::infrastructure::cache::CacheStrategy::ShortTerm, // 5 minutes
                 || async move {
                     debug!("Fetching Fear & Greed Index from API");
                     let data = market_api.fetch_fear_greed_index().await?;
@@ -75,7 +75,7 @@ impl ApiAggregator {
 
             cache.cache_manager.get_or_compute_typed(
                 "btc_rsi_14_taapi_3h",
-                crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::CacheStrategy::LongTerm, // 3 hours
+                crate::infrastructure::cache::CacheStrategy::LongTerm, // 3 hours
                 || async move {
                     debug!("Fetching BTC RSI-14 from API");
                     let data = market_api.fetch_btc_rsi_14().await?;
@@ -102,7 +102,7 @@ impl ApiAggregator {
 
             cache.cache_manager.get_or_compute_typed(
                 "us_indices_finnhub_5m",
-                crate::service_islands::layer1_infrastructure::cache_system_island::cache_manager::CacheStrategy::ShortTerm, // 5 minutes
+                crate::infrastructure::cache::CacheStrategy::ShortTerm, // 5 minutes
                 || async move {
                     debug!("Fetching US Stock Indices from API");
                     let data = market_api.fetch_us_stock_indices().await?;
