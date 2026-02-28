@@ -32,8 +32,8 @@ impl AppState {
             .fetch_dashboard_summary_v2(force_refresh)
             .await?;
 
-        if let Ok(cache_value) = serde_json::to_value(&data) {
-            if let Err(e) = self
+        if let Ok(cache_value) = serde_json::to_value(&data)
+            && let Err(e) = self
                 .cache
                 .cache_manager()
                 .set_with_strategy(
@@ -45,7 +45,6 @@ impl AppState {
             {
                 tracing::warn!("Failed to cache market data: {}", e);
             }
-        }
 
         if let Err(e) = self.publish_to_redis_stream(&data).await {
             tracing::warn!("Failed to publish to Redis Stream: {}", e);

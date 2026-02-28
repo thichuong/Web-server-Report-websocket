@@ -28,8 +28,8 @@ impl ApiAggregator {
         let cache_key = "multi_crypto_prices_realtime";
 
         // Handle force refresh: bypass cache and update
-        if force_refresh {
-            if let Some(ref cache) = self.cache_system {
+        if force_refresh
+            && let Some(ref cache) = self.cache_system {
                 info!("Force refresh - fetching fresh crypto prices from API");
 
                 // Fetch from API
@@ -64,7 +64,6 @@ impl ApiAggregator {
 
                 return Ok(result);
             }
-        }
 
         // Normal flow: Use type-safe caching
         if let Some(ref cache) = self.cache_system {

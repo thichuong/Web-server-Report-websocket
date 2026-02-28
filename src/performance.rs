@@ -33,6 +33,5 @@ mod tests {
         // We can't easily check internal configuration, but we can verify it's usable
         // (This just checks it doesn't crash on access)
         let _ = client;
-        assert!(true);
     }
 }

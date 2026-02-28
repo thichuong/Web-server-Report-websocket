@@ -1,3 +1,5 @@
+#![allow(clippy::expect_used, clippy::unreadable_literal, clippy::default_trait_access)]
+
 use web_server_report_websocket::dto::websocket::{DashboardData, ServerMessage};
 
 #[test]
@@ -40,7 +42,7 @@ fn test_dashboard_data_structure() {
     );
     let msg = ServerMessage::DashboardUpdate(Box::new(payload));
 
-    let json = msg.to_json_string().unwrap();
+    let json = msg.to_json_string().expect("Serialization should succeed");
     assert!(json.contains("DashboardUpdate"));
     assert!(json.contains("btc_price_usd"));
 }
