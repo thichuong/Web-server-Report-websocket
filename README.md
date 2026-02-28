@@ -202,6 +202,7 @@ Toàn bộ documentation nằm trong thư mục [`document/`](./document/):
 
 ### Quick Links
 
+- **[🏛️ Architecture Overview](./ARCHITECTURE.md)** - System architecture and data flow
 - **[⚡ Quick Start (5 phút)](./document/RAILWAY_QUICKSTART.md)** - Deploy lên Railway ngay lập tức
 - **[📖 Full Deployment Guide](./document/DEPLOYMENT_GUIDE.md)** - Hướng dẫn đầy đủ chi tiết
 - **[🎖️ Leader Election Technical Summary](./document/LEADER_ELECTION_SUMMARY.md)** - Technical implementation details
