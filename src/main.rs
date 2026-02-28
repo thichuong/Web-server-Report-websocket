@@ -1,22 +1,22 @@
 #![warn(clippy::pedantic)]
 use anyhow::Context;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::AtomicUsize;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{signal, time::interval};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::AtomicUsize;
 
+pub mod api;
 pub mod config;
 pub mod dto;
-pub mod performance;
 pub mod infrastructure;
+pub mod performance;
 pub mod services;
-pub mod api;
 
-use config::app_env::AppConfig;
-use api::state::AppState;
 use api::routes::create_router;
+use api::state::AppState;
+use config::app_env::AppConfig;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -42,7 +42,10 @@ async fn main() -> Result<(), anyhow::Error> {
     let node_id = std::env::var("RAILWAY_REPLICA_ID")
         .or_else(|_| std::env::var("RAILWAY_INSTANCE_ID"))
         .unwrap_or_else(|_| format!("ws-{}", uuid::Uuid::new_v4()));
-    let leader_election = Arc::new(services::leader_election::LeaderElectionService::new(&app_config.redis_url, node_id).await?);
+    let leader_election = Arc::new(
+        services::leader_election::LeaderElectionService::new(&app_config.redis_url, node_id)
+            .await?,
+    );
     let is_leader = Arc::new(AtomicBool::new(false));
 
     tokio::spawn({
@@ -55,19 +58,25 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Initialize External APIs
     info!("🌐 Initializing External APIs...");
-    let external_apis = Arc::new(services::market_data::ExternalApisIsland::with_cache_and_all_keys(
-        app_config.taapi_secret.clone(),
-        app_config.cmc_api_key.clone(),
-        app_config.finnhub_api_key.clone(),
-        Some(cache_system.clone()),
-    ).await?);
+    let external_apis = Arc::new(
+        services::market_data::ExternalApisIsland::with_cache_and_all_keys(
+            app_config.taapi_secret.clone(),
+            app_config.cmc_api_key.clone(),
+            app_config.finnhub_api_key.clone(),
+            Some(cache_system.clone()),
+        )
+        .await?,
+    );
 
     // Initialize Broadcaster
     info!("📡 Initializing WebSocket Broadcaster...");
-    let broadcaster = Arc::new(services::broadcaster::WebSocketServiceIsland::with_external_apis_and_cache(
-        external_apis.clone(),
-        cache_system.clone(),
-    ).await?);
+    let broadcaster = Arc::new(
+        services::broadcaster::WebSocketServiceIsland::with_external_apis_and_cache(
+            external_apis.clone(),
+            cache_system.clone(),
+        )
+        .await?,
+    );
 
     // Build AppState
     let app_state = Arc::new(AppState {
@@ -138,9 +147,15 @@ async fn spawn_market_data_fetcher(state: Arc<AppState>, fetch_interval: u64) {
                 Ok(data) => {
                     info!("✅ [LEADER] Market data fetched successfully from APIs");
                     if let Err(e) = state.broadcast_to_websocket_clients(data).await {
-                        error!("❌ [LEADER] Failed to broadcast to WebSocket clients: {}", e);
+                        error!(
+                            "❌ [LEADER] Failed to broadcast to WebSocket clients: {}",
+                            e
+                        );
                     } else {
-                        info!("📡 [LEADER] Broadcasted to {} WebSocket clients", state.active_connections());
+                        info!(
+                            "📡 [LEADER] Broadcasted to {} WebSocket clients",
+                            state.active_connections()
+                        );
                     }
                 }
                 Err(e) => {
@@ -155,10 +170,18 @@ async fn spawn_market_data_fetcher(state: Arc<AppState>, fetch_interval: u64) {
                     info!("✅ [FOLLOWER] Market data loaded from cache");
                     match serde_json::from_value(data) {
                         Ok(dashboard_data) => {
-                            if let Err(e) = state.broadcast_to_websocket_clients(dashboard_data).await {
-                                error!("❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}", e);
+                            if let Err(e) =
+                                state.broadcast_to_websocket_clients(dashboard_data).await
+                            {
+                                error!(
+                                    "❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}",
+                                    e
+                                );
                             } else {
-                                info!("📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients", state.active_connections());
+                                info!(
+                                    "📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients",
+                                    state.active_connections()
+                                );
                             }
                         }
                         Err(e) => {
@@ -166,7 +189,9 @@ async fn spawn_market_data_fetcher(state: Arc<AppState>, fetch_interval: u64) {
                         }
                     }
                 }
-                Ok(None) => warn!("⚠️ [FOLLOWER] No cached data available yet (leader may still be fetching)"),
+                Ok(None) => warn!(
+                    "⚠️ [FOLLOWER] No cached data available yet (leader may still be fetching)"
+                ),
                 Err(e) => error!("❌ [FOLLOWER] Failed to read from cache: {}", e),
             }
         }

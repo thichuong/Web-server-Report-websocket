@@ -4,7 +4,7 @@ use web_server_report_websocket::dto::websocket::{DashboardData, ServerMessage};
 fn test_dashboard_data_structure() {
     // This integration test verifies that the public API (DTOs) behaves as expected
     // It imports from the library crate
-    
+
     let data = DashboardData {
         btc_price_usd: 100000.0,
         btc_change_24h: 5.0,
@@ -34,9 +34,12 @@ fn test_dashboard_data_structure() {
         timestamp: "2024-01-01T00:00:00Z".to_string(),
     };
 
-    let payload = web_server_report_websocket::dto::websocket::DashboardUpdatePayload::new(data, "integration_test");
+    let payload = web_server_report_websocket::dto::websocket::DashboardUpdatePayload::new(
+        data,
+        "integration_test",
+    );
     let msg = ServerMessage::DashboardUpdate(Box::new(payload));
-    
+
     let json = msg.to_json_string().unwrap();
     assert!(json.contains("DashboardUpdate"));
     assert!(json.contains("btc_price_usd"));

@@ -32,7 +32,7 @@ mod tests {
         let client = &*OPTIMIZED_HTTP_CLIENT;
         // We can't easily check internal configuration, but we can verify it's usable
         // (This just checks it doesn't crash on access)
-        let _ = client; 
+        let _ = client;
         assert!(true);
     }
 }

@@ -46,8 +46,14 @@ impl ApiAggregator {
                 // Update cache with strongly-typed data
                 match serde_json::to_value(&result) {
                     Ok(cache_value) => {
-                        let _ = cache.cache_manager.set_with_strategy(cache_key, cache_value,
-                            crate::infrastructure::cache::realtime_strategy()).await;
+                        let _ = cache
+                            .cache_manager
+                            .set_with_strategy(
+                                cache_key,
+                                cache_value,
+                                crate::infrastructure::cache::realtime_strategy(),
+                            )
+                            .await;
                         debug!("All crypto prices cached after force refresh (RealTime - 30s TTL)");
                     }
                     Err(e) => {
@@ -64,30 +70,34 @@ impl ApiAggregator {
         if let Some(ref cache) = self.cache_system {
             let market_api = Arc::clone(&self.market_api);
 
-            match cache.cache_manager.get_or_compute_typed(
-                cache_key,
-                crate::infrastructure::cache::realtime_strategy(),
-                || async move {
-                    debug!("Fetching all crypto prices from API");
-                    let raw_data = market_api.fetch_multi_crypto_prices().await?;
+            match cache
+                .cache_manager
+                .get_or_compute_typed(
+                    cache_key,
+                    crate::infrastructure::cache::realtime_strategy(),
+                    || async move {
+                        debug!("Fetching all crypto prices from API");
+                        let raw_data = market_api.fetch_multi_crypto_prices().await?;
 
-                    // Convert HashMap<String, (f64, f64)> to HashMap<String, CryptoPrice>
-                    let result: HashMap<String, CryptoPrice> = raw_data
-                        .into_iter()
-                        .map(|(coin, (price_usd, change_24h))| {
-                            (coin, CryptoPrice::new(price_usd, change_24h))
-                        })
-                        .collect();
+                        // Convert HashMap<String, (f64, f64)> to HashMap<String, CryptoPrice>
+                        let result: HashMap<String, CryptoPrice> = raw_data
+                            .into_iter()
+                            .map(|(coin, (price_usd, change_24h))| {
+                                (coin, CryptoPrice::new(price_usd, change_24h))
+                            })
+                            .collect();
 
-                    debug!("All crypto prices fetched and ready for caching");
-                    Ok(result)
-                }
-            ).await {
+                        debug!("All crypto prices fetched and ready for caching");
+                        Ok(result)
+                    },
+                )
+                .await
+            {
                 Ok(prices) => {
                     debug!("All crypto prices ready (with stampede protection)");
                     Ok(prices)
                 }
-                Err(e) => Err(e)
+                Err(e) => Err(e),
             }
         } else {
             // No cache system - direct API call

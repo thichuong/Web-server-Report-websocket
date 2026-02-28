@@ -458,19 +458,21 @@ mod tests {
             timestamp: "2023-01-01T00:00:00Z".to_string(),
         };
 
-        let json = dashboard_data.to_json_string().expect("Serialization should succeed");
-        
+        let json = dashboard_data
+            .to_json_string()
+            .expect("Serialization should succeed");
+
         // Check for camelCase keys which are default for ServerMessage but DashboardData uses snake_case in Struct definition
         // Wait, DashboardData has #[serde(rename_all = "snake_case")] but individual fields have aliases.
         // Let's check what it actually produces.
         // It produces snake_case because of `#[serde(rename_all = "snake_case")]`.
-        assert!(json.contains("btc_price_usd")); 
+        assert!(json.contains("btc_price_usd"));
         assert!(json.contains("50000"));
     }
 
     #[test]
     fn test_dashboard_update_payload_serialization() {
-         let dashboard_data = DashboardData {
+        let dashboard_data = DashboardData {
             btc_price_usd: 50000.0,
             btc_change_24h: 2.5,
             btc_market_cap_percentage: 50.0,

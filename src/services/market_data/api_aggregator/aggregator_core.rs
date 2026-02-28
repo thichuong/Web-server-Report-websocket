@@ -2,8 +2,8 @@
 //!
 //! This module contains the core `ApiAggregator` struct and its constructor methods.
 
-use crate::performance::OPTIMIZED_HTTP_CLIENT;
 use crate::infrastructure::cache::CacheSystem;
+use crate::performance::OPTIMIZED_HTTP_CLIENT;
 use crate::services::market_data::MarketDataApi;
 use anyhow::Result;
 use reqwest::Client;
@@ -77,10 +77,7 @@ impl ApiAggregator {
     /// # Errors
     /// Returns error if API initialization or HTTP client setup fails
     #[allow(dead_code)]
-    pub async fn with_cache(
-        taapi_secret: String,
-        cache_system: Arc<CacheSystem>,
-    ) -> Result<Self> {
+    pub async fn with_cache(taapi_secret: String, cache_system: Arc<CacheSystem>) -> Result<Self> {
         Self::with_cache_and_cmc(taapi_secret, None, cache_system).await
     }
 

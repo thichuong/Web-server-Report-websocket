@@ -2,7 +2,9 @@ use anyhow::Result;
 use std::ops::Deref;
 use std::sync::Arc;
 
-pub use multi_tier_cache::{CacheManager, CacheManagerStats, CacheStrategy, CacheSystem as LibraryCacheSystem};
+pub use multi_tier_cache::{
+    CacheManager, CacheManagerStats, CacheStrategy, CacheSystem as LibraryCacheSystem,
+};
 
 /// Helper: return a realtime cache strategy with a 5 second TTL.
 #[must_use]
@@ -22,6 +24,12 @@ impl Deref for CacheSystem {
 }
 
 impl CacheSystem {
+    /// Initializes a new `CacheSystem`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the underlying multi-tier cache system fails to initialize
+    /// (e.g., Redis connection failure).
     pub async fn new() -> Result<Self> {
         let inner = LibraryCacheSystem::new().await?;
         Ok(Self(inner))

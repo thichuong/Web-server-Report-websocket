@@ -1,3 +1,4 @@
+use crate::api::state::AppState;
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -5,9 +6,8 @@ use axum::{
     },
     response::IntoResponse,
 };
-use tracing::info;
 use std::sync::Arc;
-use crate::api::state::AppState;
+use tracing::info;
 
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
@@ -21,11 +21,18 @@ async fn handle_websocket(mut socket: WebSocket, state: Arc<AppState>) {
 
     state.active_ws_connections.fetch_add(1, Ordering::SeqCst);
     let current_connections = state.active_connections();
-    info!("➕ New WebSocket connection (total: {})", current_connections);
+    info!(
+        "➕ New WebSocket connection (total: {})",
+        current_connections
+    );
 
     let mut rx = state.broadcaster.broadcast_service.subscribe();
 
-    if socket.send(Message::Text("Connected to WebSocket service".to_string())).await.is_err() {
+    if socket
+        .send(Message::Text("Connected to WebSocket service".to_string()))
+        .await
+        .is_err()
+    {
         info!("Failed to send initial message");
         return;
     }
@@ -52,7 +59,10 @@ async fn handle_websocket(mut socket: WebSocket, state: Arc<AppState>) {
 
     state.active_ws_connections.fetch_sub(1, Ordering::SeqCst);
     let current_connections = state.active_connections();
-    info!("➖ WebSocket connection closed (total: {})", current_connections);
+    info!(
+        "➖ WebSocket connection closed (total: {})",
+        current_connections
+    );
 }
 
 pub async fn health_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {

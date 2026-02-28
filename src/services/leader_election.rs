@@ -16,10 +16,22 @@ pub struct LeaderElectionService {
 }
 
 impl LeaderElectionService {
+    /// Creates a new `LeaderElectionService`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if connecting to Redis fails, or if pinging the Redis server fails.
     pub async fn new(redis_url: &str, node_id: String) -> Result<Self> {
-        let redis_client = Client::open(redis_url).context("Failed to create Redis client for leader election")?;
-        let mut conn = redis_client.get_multiplexed_async_connection().await.context("Failed to connect to Redis for leader election")?;
-        let _: String = redis::cmd("PING").query_async(&mut conn).await.context("Failed to ping Redis")?;
+        let redis_client =
+            Client::open(redis_url).context("Failed to create Redis client for leader election")?;
+        let mut conn = redis_client
+            .get_multiplexed_async_connection()
+            .await
+            .context("Failed to connect to Redis for leader election")?;
+        let _: String = redis::cmd("PING")
+            .query_async(&mut conn)
+            .await
+            .context("Failed to ping Redis")?;
         info!("Leader election service initialized for node: {}", node_id);
         Ok(Self {
             redis_client,
@@ -30,8 +42,17 @@ impl LeaderElectionService {
         })
     }
 
+    /// Attempts to acquire leadership using a Redis distributed lock.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if it cannot get a Redis connection or if a Redis command fails.
     pub async fn try_acquire_leadership(&self) -> Result<bool> {
-        let mut conn = self.redis_client.get_multiplexed_async_connection().await.context("Failed to get Redis connection")?;
+        let mut conn = self
+            .redis_client
+            .get_multiplexed_async_connection()
+            .await
+            .context("Failed to get Redis connection")?;
         let result: Option<String> = redis::cmd("SET")
             .arg(&self.election_key)
             .arg(&self.node_id)
@@ -46,13 +67,25 @@ impl LeaderElectionService {
         if acquired {
             info!("🎖️  Node {} acquired LEADERSHIP", self.node_id);
         } else {
-            debug!("Node {} failed to acquire leadership (another node is leader)", self.node_id);
+            debug!(
+                "Node {} failed to acquire leadership (another node is leader)",
+                self.node_id
+            );
         }
         Ok(acquired)
     }
 
+    /// Renews current leadership by extending the lock expiry in Redis.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if it cannot get a Redis connection or if the Lua script execution fails.
     pub async fn renew_leadership(&self) -> Result<bool> {
-        let mut conn = self.redis_client.get_multiplexed_async_connection().await.context("Failed to get Redis connection")?;
+        let mut conn = self
+            .redis_client
+            .get_multiplexed_async_connection()
+            .await
+            .context("Failed to get Redis connection")?;
         let script = redis::Script::new(
             r#"
             if redis.call("GET", KEYS[1]) == ARGV[1] then
@@ -79,8 +112,17 @@ impl LeaderElectionService {
         Ok(renewed)
     }
 
+    /// Releases the acquired leadership lock gracefully.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if it cannot get a Redis connection or if the Lua script execution fails.
     pub async fn release_leadership(&self) -> Result<()> {
-        let mut conn = self.redis_client.get_multiplexed_async_connection().await.context("Failed to get Redis connection")?;
+        let mut conn = self
+            .redis_client
+            .get_multiplexed_async_connection()
+            .await
+            .context("Failed to get Redis connection")?;
         let script = redis::Script::new(
             r#"
             if redis.call("GET", KEYS[1]) == ARGV[1] then
@@ -106,7 +148,10 @@ impl LeaderElectionService {
     }
 
     pub async fn monitor_leadership(self: Arc<Self>, is_leader_flag: Arc<AtomicBool>) {
-        info!("🔍 Starting leadership monitoring for node: {}", self.node_id);
+        info!(
+            "🔍 Starting leadership monitoring for node: {}",
+            self.node_id
+        );
         let mut interval = time::interval(self.heartbeat_interval);
         loop {
             interval.tick().await;
@@ -130,9 +175,15 @@ impl LeaderElectionService {
             };
             is_leader_flag.store(is_leader, Ordering::Relaxed);
             if is_leader && !was_leader {
-                info!("🎖️  LEADERSHIP ACQUIRED - Node {} is now the LEADER", self.node_id);
+                info!(
+                    "🎖️  LEADERSHIP ACQUIRED - Node {} is now the LEADER",
+                    self.node_id
+                );
             } else if !is_leader && was_leader {
-                warn!("🔄 LEADERSHIP LOST - Node {} is now a FOLLOWER", self.node_id);
+                warn!(
+                    "🔄 LEADERSHIP LOST - Node {} is now a FOLLOWER",
+                    self.node_id
+                );
             }
         }
     }

@@ -52,9 +52,7 @@ impl WebSocketServiceIsland {
     #[allow(clippy::unused_async)]
     pub async fn with_external_apis_and_cache(
         _external_apis: Arc<ExternalApisIsland>,
-        _cache_system: Arc<
-            crate::infrastructure::cache::CacheSystem,
-        >,
+        _cache_system: Arc<crate::infrastructure::cache::CacheSystem>,
     ) -> Result<Self> {
         info!("Initializing WebSocket Service Island with External APIs and Cache");
 
@@ -90,9 +88,7 @@ impl WebSocketServiceIsland {
     #[allow(clippy::unused_async)]
     pub async fn with_grpc_client_and_cache(
         _layer2_grpc_client: Arc<String>, // Placeholder - not used
-        _cache_system: Arc<
-            crate::infrastructure::cache::CacheSystem,
-        >,
+        _cache_system: Arc<crate::infrastructure::cache::CacheSystem>,
     ) -> Result<Self> {
         info!("Initializing WebSocket Service Island (websocket service doesn't use gRPC)");
 
