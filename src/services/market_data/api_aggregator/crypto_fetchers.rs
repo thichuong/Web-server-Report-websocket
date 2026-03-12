@@ -44,23 +44,19 @@ impl ApiAggregator {
                     .collect();
 
                 // Update cache with strongly-typed data
-                match serde_json::to_value(&result) {
-                    Ok(cache_value) => {
-                        let _ = cache
-                            .cache_manager
-                            .set_with_strategy(
-                                cache_key,
-                                cache_value,
-                                crate::infrastructure::cache::realtime_strategy(),
-                            )
-                            .await;
-                        debug!("All crypto prices cached after force refresh (RealTime - 30s TTL)");
-                    }
-                    Err(e) => {
-                        warn!("Failed to serialize crypto prices for cache: {}. Data not cached but will be returned.", e);
-                        // Continue anyway - data is still valid, just not cached
-                    }
+                if let Ok(cache_vec) = serde_json::to_vec(&result) {
+                    let cache_value = multi_tier_cache::Bytes::from(cache_vec);
+                    let _ = cache
+                        .cache_manager
+                        .set_with_strategy(
+                            cache_key,
+                            cache_value,
+                            crate::infrastructure::cache::realtime_strategy(),
+                        )
+                        .await;
+                    debug!("All crypto prices cached after force refresh (RealTime - 30s TTL)");
                 }
+
 
                 return Ok(result);
             }

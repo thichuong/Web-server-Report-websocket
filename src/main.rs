@@ -168,7 +168,8 @@ async fn spawn_market_data_fetcher(state: Arc<AppState>, fetch_interval: u64) {
             match state.cache.cache_manager().get("latest_market_data").await {
                 Ok(Some(data)) => {
                     info!("✅ [FOLLOWER] Market data loaded from cache");
-                    match serde_json::from_value(data) {
+                    match serde_json::from_slice(&data) {
+
                         Ok(dashboard_data) => {
                             match state.broadcast_to_websocket_clients(dashboard_data).await
                             { Err(e) => {
