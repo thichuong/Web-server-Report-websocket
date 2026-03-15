@@ -7,8 +7,8 @@ use crate::performance::OPTIMIZED_HTTP_CLIENT;
 use crate::services::market_data::MarketDataApi;
 use anyhow::Result;
 use reqwest::Client;
-use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
 use tracing::{debug, error, info};
 
 /// API Aggregator
@@ -131,7 +131,12 @@ impl ApiAggregator {
         // Use cache lookup instead of actual API call to prevent rate limiting during health checks
         if let Some(ref cache) = self.cache_system {
             let cache_key = "btc_coingecko_30s";
-            if let Ok(Some(_cached_data)) = cache.cache_manager.get(cache_key).await {
+            if let Ok(Some(_cached_data)) = cache
+                .cache_manager
+                .get(cache_key)
+                .await
+                .map_err(anyhow::Error::from)
+            {
                 debug!("Aggregation test passed - cached BTC data available");
                 return Ok(());
             }

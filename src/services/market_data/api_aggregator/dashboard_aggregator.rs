@@ -7,7 +7,7 @@ use super::aggregator_core::ApiAggregator;
 use crate::dto::websocket::{CryptoPrice, DashboardData, UsStockIndices};
 use anyhow::Result;
 use std::sync::atomic::Ordering;
-use tokio::time::{timeout, Duration};
+use tokio::time::{Duration, timeout};
 use tracing::{info, warn};
 
 impl ApiAggregator {

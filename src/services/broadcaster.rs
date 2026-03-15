@@ -172,6 +172,8 @@ impl WebSocketServiceIsland {
         &self,
         _force_realtime_refresh: bool,
     ) -> Result<serde_json::Value> {
-        Err(anyhow::anyhow!("fetch_market_data is deprecated - use ServiceIslands.fetch_and_publish_market_data() instead"))
+        Err(anyhow::anyhow!(
+            "fetch_market_data is deprecated - use ServiceIslands.fetch_and_publish_market_data() instead"
+        ))
     }
 }

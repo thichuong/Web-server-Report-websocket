@@ -1,4 +1,8 @@
-#![allow(clippy::expect_used, clippy::unreadable_literal, clippy::default_trait_access)]
+#![allow(
+    clippy::expect_used,
+    clippy::unreadable_literal,
+    clippy::default_trait_access
+)]
 
 use web_server_report_websocket::dto::websocket::{DashboardData, ServerMessage};
 

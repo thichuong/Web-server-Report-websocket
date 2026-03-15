@@ -31,7 +31,9 @@ impl CacheSystem {
     /// Returns an error if the underlying multi-tier cache system fails to initialize
     /// (e.g., Redis connection failure).
     pub async fn new() -> Result<Self> {
-        let inner = LibraryCacheSystem::new().await?;
+        let inner = LibraryCacheSystem::new()
+            .await
+            .map_err(anyhow::Error::from)?;
         Ok(Self(inner))
     }
 

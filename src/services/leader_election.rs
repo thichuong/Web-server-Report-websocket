@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use redis::Client;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tokio::time;
 use tracing::{debug, error, info, warn};

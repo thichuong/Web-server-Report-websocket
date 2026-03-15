@@ -3,8 +3,8 @@
 //! This component implements the circuit breaker pattern to handle failing external services gracefully.
 
 use std::collections::HashMap;
-use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
 use std::time::Instant;
 use tokio::sync::RwLock;
 

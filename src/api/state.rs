@@ -1,5 +1,5 @@
-use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 
 use crate::dto::websocket::DashboardData;
 use crate::infrastructure::cache::CacheSystem;
@@ -47,7 +47,6 @@ impl AppState {
                 tracing::warn!("Failed to cache market data: {}", e);
             }
         }
-
 
         if let Err(e) = self.publish_to_redis_stream(&data).await {
             tracing::warn!("Failed to publish to Redis Stream: {}", e);

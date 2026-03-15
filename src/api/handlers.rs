@@ -1,8 +1,8 @@
 use crate::api::state::AppState;
 use axum::{
     extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
         State,
+        ws::{Message, WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
 };
@@ -29,7 +29,9 @@ async fn handle_websocket(mut socket: WebSocket, state: Arc<AppState>) {
     let mut rx = state.broadcaster.broadcast_service.subscribe();
 
     if socket
-        .send(Message::Text("Connected to WebSocket service".to_string()))
+        .send(Message::Text(
+            "Connected to WebSocket service".to_string().into(),
+        ))
         .await
         .is_err()
     {
@@ -42,7 +44,7 @@ async fn handle_websocket(mut socket: WebSocket, state: Arc<AppState>) {
             msg = rx.recv() => {
                 match msg {
                     Ok(text) => {
-                        if socket.send(Message::Text(text)).await.is_err() {
+                        if socket.send(Message::Text(text.into())).await.is_err() {
                             break;
                         }
                     }

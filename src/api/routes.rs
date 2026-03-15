@@ -1,6 +1,6 @@
 use crate::api::handlers::{health_handler, websocket_handler};
 use crate::api::state::AppState;
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use std::sync::Arc;
 
 pub fn create_router(state: Arc<AppState>) -> Router {

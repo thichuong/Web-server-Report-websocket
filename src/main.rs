@@ -108,20 +108,23 @@ async fn main() -> Result<(), anyhow::Error> {
         .parse()
         .context("HOST and PORT must form a valid address")?;
 
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
     info!("🌐 WebSocket Service listening on ws://{}", addr);
 
-    let server = axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .with_graceful_shutdown(shutdown_signal());
-
-    server.await?;
+    // Start server with graceful shutdown support
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
 
     info!("🔓 Releasing leadership before shutdown...");
-    match app_state.leader_election.release_leadership().await { Err(e) => {
-        warn!("⚠️ Failed to release leadership: {}", e);
-    } _ => {
-        info!("✅ Leadership released successfully");
-    }}
+    match app_state.leader_election.release_leadership().await {
+        Err(e) => {
+            warn!("⚠️ Failed to release leadership: {}", e);
+        }
+        _ => {
+            info!("✅ Leadership released successfully");
+        }
+    }
 
     info!("👋 WebSocket service shutdown complete");
     Ok(())
@@ -146,17 +149,20 @@ async fn spawn_market_data_fetcher(state: Arc<AppState>, fetch_interval: u64) {
             match state.fetch_and_publish_market_data(true).await {
                 Ok(data) => {
                     info!("✅ [LEADER] Market data fetched successfully from APIs");
-                    match state.broadcast_to_websocket_clients(data).await { Err(e) => {
-                        error!(
-                            "❌ [LEADER] Failed to broadcast to WebSocket clients: {}",
-                            e
-                        );
-                    } _ => {
-                        info!(
-                            "📡 [LEADER] Broadcasted to {} WebSocket clients",
-                            state.active_connections()
-                        );
-                    }}
+                    match state.broadcast_to_websocket_clients(data).await {
+                        Err(e) => {
+                            error!(
+                                "❌ [LEADER] Failed to broadcast to WebSocket clients: {}",
+                                e
+                            );
+                        }
+                        _ => {
+                            info!(
+                                "📡 [LEADER] Broadcasted to {} WebSocket clients",
+                                state.active_connections()
+                            );
+                        }
+                    }
                 }
                 Err(e) => {
                     error!("❌ [LEADER] Failed to fetch market data: {}", e);
@@ -169,20 +175,21 @@ async fn spawn_market_data_fetcher(state: Arc<AppState>, fetch_interval: u64) {
                 Ok(Some(data)) => {
                     info!("✅ [FOLLOWER] Market data loaded from cache");
                     match serde_json::from_slice(&data) {
-
                         Ok(dashboard_data) => {
-                            match state.broadcast_to_websocket_clients(dashboard_data).await
-                            { Err(e) => {
-                                error!(
-                                    "❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}",
-                                    e
-                                );
-                            } _ => {
-                                info!(
-                                    "📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients",
-                                    state.active_connections()
-                                );
-                            }}
+                            match state.broadcast_to_websocket_clients(dashboard_data).await {
+                                Err(e) => {
+                                    error!(
+                                        "❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}",
+                                        e
+                                    );
+                                }
+                                _ => {
+                                    info!(
+                                        "📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients",
+                                        state.active_connections()
+                                    );
+                                }
+                            }
                         }
                         Err(e) => {
                             error!("❌ [FOLLOWER] Failed to deserialize cached data: {}", e);
