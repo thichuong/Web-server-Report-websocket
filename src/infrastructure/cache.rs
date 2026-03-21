@@ -6,10 +6,10 @@ pub use multi_tier_cache::{
     CacheManager, CacheManagerStats, CacheStrategy, CacheSystem as LibraryCacheSystem,
 };
 
-/// Helper: return a realtime cache strategy with a 5 second TTL.
+/// Helper: return a realtime cache strategy with a 15 second TTL.
 #[must_use]
 pub fn realtime_strategy() -> CacheStrategy {
-    CacheStrategy::Custom(std::time::Duration::from_secs(5))
+    CacheStrategy::Custom(std::time::Duration::from_secs(15))
 }
 
 /// Cache System - Two-tier caching system
