@@ -1250,12 +1250,10 @@ dependencies = [
 
 [[package]]
 name = "multi-tier-cache"
-version = "0.6.6"
+version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "494418c75e81abaa7082aa34b409dc1fca0836f6c63522b8d6483dc72ffe2665"
+checksum = "6abefd4bf2ab88423426510c40172a7e1c65e1f9975e84358e86298bbd363ed1"
 dependencies = [
- "anyhow",
- "async-trait",
  "bytes",
  "dashmap",
  "futures-util",
@@ -1268,7 +1266,6 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tracing",
- "tracing-subscriber",
  "uuid",
 ]
 
