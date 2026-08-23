@@ -56,31 +56,25 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     });
 
-    // Initialize External APIs
-    info!("🌐 Initializing External APIs...");
-    let external_apis = Arc::new(
-        services::market_data::ExternalApisIsland::with_cache_and_all_keys(
+    // Initialize Market Data Service
+    info!("🌐 Initializing Market Data Service...");
+    let market_data = Arc::new(
+        services::market_data::MarketDataService::new(
             app_config.taapi_secret.clone(),
             app_config.cmc_api_key.clone(),
-            Some(cache_system.clone()),
+            cache_system.clone(),
         )
         .await?,
     );
 
     // Initialize Broadcaster
     info!("📡 Initializing WebSocket Broadcaster...");
-    let broadcaster = Arc::new(
-        services::broadcaster::WebSocketServiceIsland::with_external_apis_and_cache(
-            external_apis.clone(),
-            cache_system.clone(),
-        )
-        .await?,
-    );
+    let broadcaster = Arc::new(services::broadcaster::Broadcaster::new(1000));
 
     // Build AppState
     let app_state = Arc::new(AppState {
         cache: cache_system,
-        external_apis,
+        market_data,
         broadcaster,
         leader_election: leader_election.clone(),
         is_leader,
@@ -148,7 +142,7 @@ async fn spawn_market_data_fetcher(state: Arc<AppState>, fetch_interval: u64) {
             match state.fetch_and_publish_market_data(true).await {
                 Ok(data) => {
                     info!("✅ [LEADER] Market data fetched successfully from APIs");
-                    match state.broadcast_to_websocket_clients(data).await {
+                    match state.broadcast_to_websocket_clients(data) {
                         Err(e) => {
                             error!(
                                 "❌ [LEADER] Failed to broadcast to WebSocket clients: {}",
@@ -175,7 +169,7 @@ async fn spawn_market_data_fetcher(state: Arc<AppState>, fetch_interval: u64) {
                     info!("✅ [FOLLOWER] Market data loaded from cache");
                     match serde_json::from_slice(&data) {
                         Ok(dashboard_data) => {
-                            match state.broadcast_to_websocket_clients(dashboard_data).await {
+                            match state.broadcast_to_websocket_clients(dashboard_data) {
                                 Err(e) => {
                                     error!(
                                         "❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}",

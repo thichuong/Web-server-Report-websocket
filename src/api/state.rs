@@ -3,14 +3,14 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 
 use crate::dto::websocket::DashboardData;
 use crate::infrastructure::cache::CacheSystem;
-use crate::services::broadcaster::WebSocketServiceIsland;
+use crate::services::broadcaster::Broadcaster;
 use crate::services::leader_election::LeaderElectionService;
-use crate::services::market_data::ExternalApisIsland;
+use crate::services::market_data::MarketDataService;
 
 pub struct AppState {
     pub cache: Arc<CacheSystem>,
-    pub external_apis: Arc<ExternalApisIsland>,
-    pub broadcaster: Arc<WebSocketServiceIsland>,
+    pub market_data: Arc<MarketDataService>,
+    pub broadcaster: Arc<Broadcaster>,
     pub leader_election: Arc<LeaderElectionService>,
     pub is_leader: Arc<AtomicBool>,
     pub active_ws_connections: Arc<AtomicUsize>,
@@ -21,15 +21,15 @@ impl AppState {
     ///
     /// # Errors
     ///
-    /// Returns an error if the external APIs fail to fetch the dashboard summary,
+    /// Returns an error if the market data service fails to fetch the dashboard summary,
     /// or if it fails to serialize the data to JSON string for the Redis stream.
     pub async fn fetch_and_publish_market_data(
         &self,
         force_refresh: bool,
     ) -> anyhow::Result<DashboardData> {
         let data = self
-            .external_apis
-            .fetch_dashboard_summary_v2(force_refresh)
+            .market_data
+            .fetch_dashboard_data(force_refresh)
             .await?;
 
         if let Ok(cache_vec) = serde_json::to_vec(&data) {
@@ -69,21 +69,21 @@ impl AppState {
     /// # Errors
     ///
     /// Returns an error if the payload cannot be serialized to a JSON string.
-    pub async fn broadcast_to_websocket_clients(&self, data: DashboardData) -> anyhow::Result<()> {
-        let payload = crate::dto::websocket::DashboardUpdatePayload::new(data, "external_apis");
+    pub fn broadcast_to_websocket_clients(&self, data: DashboardData) -> anyhow::Result<()> {
+        let payload = crate::dto::websocket::DashboardUpdatePayload::new(data, "market_data");
         let message = crate::dto::websocket::ServerMessage::DashboardUpdate(Box::new(payload));
         let data_str = message.to_json_string()?;
-        self.broadcaster.broadcast_service.broadcast(data_str).await;
+        self.broadcaster.broadcast(&data_str);
         Ok(())
     }
 
     pub async fn health_check_detailed(&self) -> (bool, serde_json::Value) {
         let cache_healthy = self.cache.health_check().await;
-        let external_apis_healthy = self.external_apis.health_check().await.unwrap_or(false);
-        let websocket_healthy = self.broadcaster.health_check().await.is_ok();
+        let market_data_healthy = self.market_data.health_check();
+        let websocket_healthy = self.broadcaster.health_check();
 
         let core_healthy = cache_healthy && websocket_healthy;
-        let status = if core_healthy && external_apis_healthy {
+        let status = if core_healthy && market_data_healthy {
             "healthy"
         } else if core_healthy {
             "degraded"
@@ -93,7 +93,7 @@ impl AppState {
 
         let details = serde_json::json!({
             "cache_system": cache_healthy,
-            "external_apis": external_apis_healthy,
+            "market_data": market_data_healthy,
             "websocket_service": websocket_healthy,
             "status": status,
         });

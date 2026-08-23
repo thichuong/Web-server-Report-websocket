@@ -26,7 +26,7 @@ async fn handle_websocket(mut socket: WebSocket, state: Arc<AppState>) {
         current_connections
     );
 
-    let mut rx = state.broadcaster.broadcast_service.subscribe();
+    let mut rx = state.broadcaster.subscribe();
 
     if socket
         .send(Message::Text(

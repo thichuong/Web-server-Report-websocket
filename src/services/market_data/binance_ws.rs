@@ -16,7 +16,8 @@ use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{debug, error, info, warn};
 
-use super::market_data_api::{BINANCE_US_WS_STREAM_URL, BINANCE_WS_STREAM_URL};
+use super::http_client::{BINANCE_US_WS_STREAM_URL, BINANCE_WS_STREAM_URL};
+use crate::dto::websocket::CryptoPrice;
 
 const TRACKED_COINS: [&str; 7] = ["BTC", "ETH", "SOL", "XRP", "ADA", "LINK", "BNB"];
 const MAX_DATA_STALENESS: Duration = Duration::from_secs(30);
@@ -92,7 +93,7 @@ impl BinanceWsClient {
     /// Retrieve all 7 crypto prices if all are present and fresh (updated within 30s)
     /// Returns `None` if any coin is missing or stale, signaling fallback to HTTP REST API.
     #[must_use]
-    pub fn get_multi_crypto_prices(&self) -> Option<HashMap<String, (f64, f64)>> {
+    pub fn get_multi_crypto_prices(&self) -> Option<HashMap<String, CryptoPrice>> {
         let mut result = HashMap::with_capacity(TRACKED_COINS.len());
 
         for &coin in &TRACKED_COINS {
@@ -111,7 +112,7 @@ impl BinanceWsClient {
                     return None;
                 }
 
-                result.insert(coin.to_string(), (entry.price_usd, entry.change_24h));
+                result.insert(coin.to_string(), CryptoPrice::new(entry.price_usd, entry.change_24h));
             } else {
                 debug!(coin = %coin, "Missing coin in Binance WebSocket cache");
                 return None;
@@ -138,9 +139,9 @@ impl BinanceWsClient {
     }
 
     /// Seed multiple prices from HTTP fallback
-    pub fn seed_prices(&self, prices: &HashMap<String, (f64, f64)>) {
-        for (coin, &(price_usd, change_24h)) in prices {
-            self.update_price(coin, price_usd, change_24h);
+    pub fn seed_prices(&self, prices: &HashMap<String, CryptoPrice>) {
+        for (coin, price) in prices {
+            self.update_price(coin, price.price_usd, price.change_24h);
         }
     }
 
@@ -343,9 +344,9 @@ mod tests {
         assert!(prices.is_some());
         if let Some(p) = prices {
             assert_eq!(p.len(), 7);
-            if let Some((btc_p, btc_c)) = p.get("BTC") {
-                assert!((btc_p - 95000.0).abs() < f64::EPSILON);
-                assert!((btc_c - 1.2).abs() < f64::EPSILON);
+            if let Some(btc) = p.get("BTC") {
+                assert!((btc.price_usd - 95000.0).abs() < f64::EPSILON);
+                assert!((btc.change_24h - 1.2).abs() < f64::EPSILON);
             } else {
                 panic!("BTC price missing");
             }
@@ -356,13 +357,13 @@ mod tests {
     fn test_seed_prices() {
         let client = BinanceWsClient::new();
         let mut map = HashMap::new();
-        map.insert("BTC".to_string(), (90000.0, 3.0));
-        map.insert("ETH".to_string(), (3000.0, 1.5));
-        map.insert("SOL".to_string(), (180.0, 2.0));
-        map.insert("XRP".to_string(), (2.0, 0.5));
-        map.insert("ADA".to_string(), (0.8, 1.0));
-        map.insert("LINK".to_string(), (20.0, -0.5));
-        map.insert("BNB".to_string(), (600.0, 1.2));
+        map.insert("BTC".to_string(), CryptoPrice::new(90000.0, 3.0));
+        map.insert("ETH".to_string(), CryptoPrice::new(3000.0, 1.5));
+        map.insert("SOL".to_string(), CryptoPrice::new(180.0, 2.0));
+        map.insert("XRP".to_string(), CryptoPrice::new(2.0, 0.5));
+        map.insert("ADA".to_string(), CryptoPrice::new(0.8, 1.0));
+        map.insert("LINK".to_string(), CryptoPrice::new(20.0, -0.5));
+        map.insert("BNB".to_string(), CryptoPrice::new(600.0, 1.2));
 
         client.seed_prices(&map);
         let prices = client.get_multi_crypto_prices();
