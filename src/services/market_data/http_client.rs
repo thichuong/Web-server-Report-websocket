@@ -7,10 +7,10 @@
 //! - Alternative.me (Crypto Fear & Greed Index)
 //! - `TAAPI.io` (Technical Analysis RSI-14)
 
-use std::collections::HashMap;
 use anyhow::{Context, Result, anyhow};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tracing::{info, warn};
 
 use crate::dto::websocket::CryptoPrice;
@@ -19,15 +19,11 @@ use crate::dto::websocket::CryptoPrice;
 // API Endpoint URLs
 // ============================================================================
 
-pub const BINANCE_MULTI_PRICE_URL: &str =
-    "https://api.binance.com/api/v3/ticker/24hr?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22LINKUSDT%22,%22BNBUSDT%22%5D";
-pub const BINANCE_US_MULTI_PRICE_URL: &str =
-    "https://api.binance.us/api/v3/ticker/24hr?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22LINKUSDT%22,%22BNBUSDT%22%5D";
+pub const BINANCE_MULTI_PRICE_URL: &str = "https://api.binance.com/api/v3/ticker/24hr?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22LINKUSDT%22,%22BNBUSDT%22%5D";
+pub const BINANCE_US_MULTI_PRICE_URL: &str = "https://api.binance.us/api/v3/ticker/24hr?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22LINKUSDT%22,%22BNBUSDT%22%5D";
 
-pub const BINANCE_WS_STREAM_URL: &str =
-    "wss://stream.binance.com:9443/stream?streams=btcusdt@ticker/ethusdt@ticker/solusdt@ticker/xrpusdt@ticker/adausdt@ticker/linkusdt@ticker/bnbusdt@ticker";
-pub const BINANCE_US_WS_STREAM_URL: &str =
-    "wss://stream.binance.us:9443/stream?streams=btcusdt@ticker/ethusdt@ticker/solusdt@ticker/xrpusdt@ticker/adausdt@ticker/linkusdt@ticker/bnbusdt@ticker";
+pub const BINANCE_WS_STREAM_URL: &str = "wss://stream.binance.com:9443/stream?streams=btcusdt@ticker/ethusdt@ticker/solusdt@ticker/xrpusdt@ticker/adausdt@ticker/linkusdt@ticker/bnbusdt@ticker";
+pub const BINANCE_US_WS_STREAM_URL: &str = "wss://stream.binance.us:9443/stream?streams=btcusdt@ticker/ethusdt@ticker/solusdt@ticker/xrpusdt@ticker/adausdt@ticker/linkusdt@ticker/bnbusdt@ticker";
 
 pub const COINGECKO_GLOBAL_URL: &str = "https://api.coingecko.com/api/v3/global";
 pub const CMC_GLOBAL_URL: &str =
@@ -133,7 +129,10 @@ impl MarketDataHttpClient {
                     info!("Binance Global API is accessible.");
                     BINANCE_MULTI_PRICE_URL
                 } else {
-                    warn!("Binance Global API returned status: {}. Defaulting to Global.", response.status());
+                    warn!(
+                        "Binance Global API returned status: {}. Defaulting to Global.",
+                        response.status()
+                    );
                     BINANCE_MULTI_PRICE_URL
                 }
             }
@@ -157,7 +156,10 @@ impl MarketDataHttpClient {
     ///
     /// # Errors
     /// Returns an error if the request fails, or if parsing/validation fails.
-    pub async fn fetch_multi_crypto_prices(&self, url: &str) -> Result<HashMap<String, CryptoPrice>> {
+    pub async fn fetch_multi_crypto_prices(
+        &self,
+        url: &str,
+    ) -> Result<HashMap<String, CryptoPrice>> {
         let response = self
             .client
             .get(url)
@@ -167,7 +169,10 @@ impl MarketDataHttpClient {
             .context("Failed to send request to Binance multi-ticker endpoint")?;
 
         if !response.status().is_success() {
-            return Err(anyhow!("Binance API returned status: {}", response.status()));
+            return Err(anyhow!(
+                "Binance API returned status: {}",
+                response.status()
+            ));
         }
 
         let tickers: Vec<BinanceTickerItem> = response
@@ -192,12 +197,18 @@ impl MarketDataHttpClient {
             let change_24h = ticker.price_change_percent.parse::<f64>().unwrap_or(0.0);
 
             if price_usd > 0.0 {
-                prices.insert(coin_name.to_string(), CryptoPrice::new(price_usd, change_24h));
+                prices.insert(
+                    coin_name.to_string(),
+                    CryptoPrice::new(price_usd, change_24h),
+                );
             }
         }
 
         if prices.len() < 7 {
-            return Err(anyhow!("Binance returned incomplete tickers (expected 7, got {})", prices.len()));
+            return Err(anyhow!(
+                "Binance returned incomplete tickers (expected 7, got {})",
+                prices.len()
+            ));
         }
 
         Ok(prices)
@@ -225,13 +236,30 @@ impl MarketDataHttpClient {
             .await
             .context("Failed to parse CoinGecko global response JSON")?;
 
-        let market_cap = data.data.total_market_cap.get("usd").copied().unwrap_or(0.0);
+        let market_cap = data
+            .data
+            .total_market_cap
+            .get("usd")
+            .copied()
+            .unwrap_or(0.0);
         let volume_24h = data.data.total_volume.get("usd").copied().unwrap_or(0.0);
-        let btc_dominance = data.data.market_cap_percentage.get("btc").copied().unwrap_or(0.0);
-        let eth_dominance = data.data.market_cap_percentage.get("eth").copied().unwrap_or(0.0);
+        let btc_dominance = data
+            .data
+            .market_cap_percentage
+            .get("btc")
+            .copied()
+            .unwrap_or(0.0);
+        let eth_dominance = data
+            .data
+            .market_cap_percentage
+            .get("eth")
+            .copied()
+            .unwrap_or(0.0);
 
         if market_cap <= 0.0 || volume_24h <= 0.0 || btc_dominance <= 0.0 {
-            return Err(anyhow!("CoinGecko data validation failed: zero or negative metrics"));
+            return Err(anyhow!(
+                "CoinGecko data validation failed: zero or negative metrics"
+            ));
         }
 
         Ok(GlobalMarketMetrics {
@@ -258,7 +286,10 @@ impl MarketDataHttpClient {
             .context("Failed to send request to CoinMarketCap global endpoint")?;
 
         if !response.status().is_success() {
-            return Err(anyhow!("CoinMarketCap returned status: {}", response.status()));
+            return Err(anyhow!(
+                "CoinMarketCap returned status: {}",
+                response.status()
+            ));
         }
 
         let cmc_data: CmcGlobalResponse = response
@@ -295,7 +326,10 @@ impl MarketDataHttpClient {
             .context("Failed to send request to Fear & Greed endpoint")?;
 
         if !response.status().is_success() {
-            return Err(anyhow!("Fear & Greed API returned status: {}", response.status()));
+            return Err(anyhow!(
+                "Fear & Greed API returned status: {}",
+                response.status()
+            ));
         }
 
         let fng_data: FearGreedResponse = response
@@ -353,7 +387,10 @@ impl MarketDataHttpClient {
         if response.status().is_success() {
             Ok(())
         } else {
-            Err(anyhow!("Ping returned non-success status: {}", response.status()))
+            Err(anyhow!(
+                "Ping returned non-success status: {}",
+                response.status()
+            ))
         }
     }
 }

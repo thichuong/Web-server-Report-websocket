@@ -27,10 +27,7 @@ impl AppState {
         &self,
         force_refresh: bool,
     ) -> anyhow::Result<DashboardData> {
-        let data = self
-            .market_data
-            .fetch_dashboard_data(force_refresh)
-            .await?;
+        let data = self.market_data.fetch_dashboard_data(force_refresh).await?;
 
         if let Ok(cache_vec) = serde_json::to_vec(&data) {
             let cache_value = multi_tier_cache::Bytes::from(cache_vec);

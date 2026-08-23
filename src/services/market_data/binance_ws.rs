@@ -8,8 +8,8 @@ use dashmap::DashMap;
 use futures::StreamExt;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tokio::time::sleep;
 use tokio_tungstenite::connect_async;
@@ -112,7 +112,10 @@ impl BinanceWsClient {
                     return None;
                 }
 
-                result.insert(coin.to_string(), CryptoPrice::new(entry.price_usd, entry.change_24h));
+                result.insert(
+                    coin.to_string(),
+                    CryptoPrice::new(entry.price_usd, entry.change_24h),
+                );
             } else {
                 debug!(coin = %coin, "Missing coin in Binance WebSocket cache");
                 return None;
@@ -199,7 +202,8 @@ impl BinanceWsClient {
                     .duration_since(UNIX_EPOCH)
                     .map_or(0, |d| d.as_secs());
 
-                self.last_message_timestamp.store(now_secs, Ordering::Relaxed);
+                self.last_message_timestamp
+                    .store(now_secs, Ordering::Relaxed);
             }
         }
     }
@@ -273,7 +277,10 @@ impl BinanceWsClient {
             // Exponential backoff: 1s, 2s, 4s, 8s, max 15s
             retry_count = retry_count.saturating_add(1);
             let backoff_secs = 2_u64.pow(retry_count.min(4)).min(15);
-            info!(retry_in_secs = backoff_secs, "Reconnecting to Binance WebSocket in {} seconds...", backoff_secs);
+            info!(
+                retry_in_secs = backoff_secs,
+                "Reconnecting to Binance WebSocket in {} seconds...", backoff_secs
+            );
             sleep(Duration::from_secs(backoff_secs)).await;
         }
     }

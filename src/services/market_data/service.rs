@@ -3,11 +3,11 @@
 //! Orchestrates cryptocurrency data collection from real-time WebSocket feeds,
 //! external HTTP APIs, and the multi-tier caching system to produce unified `DashboardData`.
 
+use anyhow::{Context, Result};
+use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use anyhow::{Context, Result};
-use chrono::Utc;
 use tokio::time::timeout;
 use tracing::{debug, info, warn};
 
@@ -40,10 +40,14 @@ impl MarketDataService {
         info!("Initializing MarketDataService...");
 
         if taapi_secret.is_empty() || taapi_secret == "default_secret" {
-            warn!("⚠️ TAAPI_SECRET is not configured or using default - BTC RSI-14 will default to neutral 50.0");
+            warn!(
+                "⚠️ TAAPI_SECRET is not configured or using default - BTC RSI-14 will default to neutral 50.0"
+            );
         }
         if cmc_api_key.is_none() {
-            warn!("⚠️ CMC_API_KEY is not configured - CoinMarketCap fallback for global market data is disabled");
+            warn!(
+                "⚠️ CMC_API_KEY is not configured - CoinMarketCap fallback for global market data is disabled"
+            );
         }
 
         let http_client = Arc::new(MarketDataHttpClient::new(OPTIMIZED_HTTP_CLIENT.clone()));
@@ -170,9 +174,15 @@ impl MarketDataService {
         let now = Utc::now().to_rfc3339();
 
         if partial_failure {
-            warn!(duration_ms = duration.as_millis(), "Dashboard data aggregated with partial failures");
+            warn!(
+                duration_ms = duration.as_millis(),
+                "Dashboard data aggregated with partial failures"
+            );
         } else {
-            info!(duration_ms = duration.as_millis(), "Dashboard data aggregated successfully");
+            info!(
+                duration_ms = duration.as_millis(),
+                "Dashboard data aggregated successfully"
+            );
         }
 
         Ok(DashboardData {
@@ -206,7 +216,10 @@ impl MarketDataService {
 
     /// Fetches 7 crypto prices using in-memory WebSocket feed first, with HTTP REST fallback and caching,
     /// falling back to the latest Redis stream data on failure.
-    async fn fetch_crypto_prices(&self, force_refresh: bool) -> Result<HashMap<String, CryptoPrice>> {
+    async fn fetch_crypto_prices(
+        &self,
+        force_refresh: bool,
+    ) -> Result<HashMap<String, CryptoPrice>> {
         // Fast path: In-memory real-time WebSocket cache (<30s fresh)
         if !force_refresh {
             if let Some(ws_prices) = self.binance_ws.get_multi_crypto_prices() {
@@ -230,7 +243,11 @@ impl MarketDataService {
                         let _ = self
                             .cache
                             .cache_manager()
-                            .set_with_strategy(cache_key, multi_tier_cache::Bytes::from(vec), realtime_strategy())
+                            .set_with_strategy(
+                                cache_key,
+                                multi_tier_cache::Bytes::from(vec),
+                                realtime_strategy(),
+                            )
                             .await;
                     }
                     Ok(prices)
@@ -261,7 +278,9 @@ impl MarketDataService {
         match fetch_res {
             Ok(prices) => Ok(prices),
             Err(e) => {
-                warn!("Fetch crypto prices failed: {e}. Falling back to latest Redis stream data...");
+                warn!(
+                    "Fetch crypto prices failed: {e}. Falling back to latest Redis stream data..."
+                );
                 match self.read_latest_dashboard_from_stream().await {
                     Ok(stream_data) => {
                         info!("Recovered crypto prices from Redis stream fallback");
@@ -309,20 +328,25 @@ impl MarketDataService {
         match result {
             Ok(metrics) => Ok(metrics),
             Err(e) => {
-                warn!("Global market metrics fetch error: {e}. Attempting Redis stream fallback...");
+                warn!(
+                    "Global market metrics fetch error: {e}. Attempting Redis stream fallback..."
+                );
                 match self.read_latest_dashboard_from_stream().await {
                     Ok(stream_data) => {
                         info!("Recovered global market metrics from Redis stream");
                         Ok(GlobalMarketMetrics {
                             market_cap_usd: stream_data.market_cap_usd,
                             volume_24h_usd: stream_data.volume_24h_usd,
-                            market_cap_change_percentage_24h_usd: stream_data.market_cap_change_percentage_24h_usd,
+                            market_cap_change_percentage_24h_usd: stream_data
+                                .market_cap_change_percentage_24h_usd,
                             btc_market_cap_percentage: stream_data.btc_market_cap_percentage,
                             eth_market_cap_percentage: stream_data.eth_market_cap_percentage,
                         })
                     }
                     Err(stream_err) => {
-                        warn!("Redis stream fallback for global market metrics failed: {stream_err}");
+                        warn!(
+                            "Redis stream fallback for global market metrics failed: {stream_err}"
+                        );
                         Err(anyhow::Error::from(e))
                     }
                 }
@@ -355,7 +379,10 @@ impl MarketDataService {
                 warn!("Fear & Greed fetch error: {e}. Attempting Redis stream fallback...");
                 match self.read_latest_dashboard_from_stream().await {
                     Ok(stream_data) => {
-                        info!("Recovered Fear & Greed from Redis stream: {}", stream_data.fng_value);
+                        info!(
+                            "Recovered Fear & Greed from Redis stream: {}",
+                            stream_data.fng_value
+                        );
                         Ok(stream_data.fng_value)
                     }
                     Err(stream_err) => {
@@ -367,7 +394,7 @@ impl MarketDataService {
         }
     }
 
-    /// Fetches BTC 14-day RSI with 1-hour caching (MediumTerm), falling back to Redis stream on error.
+    /// Fetches BTC 14-day RSI with 1-hour caching (`MediumTerm`), falling back to Redis stream on error.
     async fn fetch_rsi(&self, _force_refresh: bool) -> Result<f64> {
         let http_client = Arc::clone(&self.http_client);
         let secret = self.taapi_secret.clone();
@@ -398,29 +425,56 @@ impl MarketDataService {
             _ => {
                 // If get_or_compute_typed failed or returned invalid value, check raw Redis cache
                 if let Some(cached_rsi) = self.get_cached_rsi().await {
-                    debug!("Obtained BTC RSI-14 from Redis cache key 'btc_rsi_14_taapi_1h': {cached_rsi}");
+                    debug!(
+                        "Obtained BTC RSI-14 from Redis cache key 'btc_rsi_14_taapi_1h': {cached_rsi}"
+                    );
                     return Ok(cached_rsi);
                 }
 
                 // Fallback to Redis stream if available
                 warn!("Attempting Redis stream fallback for BTC RSI-14...");
-                match self.read_latest_dashboard_from_stream().await {
+                let rsi = match self.read_latest_dashboard_from_stream().await {
                     Ok(stream_data) if stream_data.btc_rsi_14 > 0.0 => {
-                        info!("Recovered BTC RSI-14 from Redis stream: {}", stream_data.btc_rsi_14);
-                        Ok(stream_data.btc_rsi_14)
+                        info!(
+                            "Recovered BTC RSI-14 from Redis stream: {}",
+                            stream_data.btc_rsi_14
+                        );
+                        stream_data.btc_rsi_14
                     }
                     _ => {
-                        debug!("TAAPI secret not configured and no cache/stream data available, defaulting to neutral RSI (50.0)");
-                        Ok(50.0)
+                        debug!(
+                            "TAAPI secret not configured and no cache/stream data available, defaulting to neutral RSI (50.0)"
+                        );
+                        50.0
                     }
+                };
+
+                if let Ok(vec) = serde_json::to_vec(&rsi)
+                    && let Err(e) = self
+                        .cache
+                        .cache_manager()
+                        .set_with_strategy(
+                            "btc_rsi_14_taapi_1h",
+                            multi_tier_cache::Bytes::from(vec),
+                            CacheStrategy::MediumTerm,
+                        )
+                        .await
+                {
+                    debug!("Failed to cache fallback BTC RSI-14: {e}");
                 }
+
+                Ok(rsi)
             }
         }
     }
 
     /// Helper: Read cached RSI from Redis key `btc_rsi_14_taapi_1h` if present in any format.
     async fn get_cached_rsi(&self) -> Option<f64> {
-        if let Ok(Some(val)) = self.cache.cache_manager().get_typed::<f64>("btc_rsi_14_taapi_1h").await
+        if let Ok(Some(val)) = self
+            .cache
+            .cache_manager()
+            .get_typed::<f64>("btc_rsi_14_taapi_1h")
+            .await
             && val > 0.0
         {
             return Some(val);
@@ -448,13 +502,34 @@ impl MarketDataService {
     /// Helper to extract 7 crypto prices from a `DashboardData` instance.
     fn extract_prices_from_dashboard(data: &DashboardData) -> HashMap<String, CryptoPrice> {
         let mut prices = HashMap::with_capacity(7);
-        prices.insert("BTC".to_string(), CryptoPrice::new(data.btc_price_usd, data.btc_change_24h));
-        prices.insert("ETH".to_string(), CryptoPrice::new(data.eth_price_usd, data.eth_change_24h));
-        prices.insert("SOL".to_string(), CryptoPrice::new(data.sol_price_usd, data.sol_change_24h));
-        prices.insert("XRP".to_string(), CryptoPrice::new(data.xrp_price_usd, data.xrp_change_24h));
-        prices.insert("ADA".to_string(), CryptoPrice::new(data.ada_price_usd, data.ada_change_24h));
-        prices.insert("LINK".to_string(), CryptoPrice::new(data.link_price_usd, data.link_change_24h));
-        prices.insert("BNB".to_string(), CryptoPrice::new(data.bnb_price_usd, data.bnb_change_24h));
+        prices.insert(
+            "BTC".to_string(),
+            CryptoPrice::new(data.btc_price_usd, data.btc_change_24h),
+        );
+        prices.insert(
+            "ETH".to_string(),
+            CryptoPrice::new(data.eth_price_usd, data.eth_change_24h),
+        );
+        prices.insert(
+            "SOL".to_string(),
+            CryptoPrice::new(data.sol_price_usd, data.sol_change_24h),
+        );
+        prices.insert(
+            "XRP".to_string(),
+            CryptoPrice::new(data.xrp_price_usd, data.xrp_change_24h),
+        );
+        prices.insert(
+            "ADA".to_string(),
+            CryptoPrice::new(data.ada_price_usd, data.ada_change_24h),
+        );
+        prices.insert(
+            "LINK".to_string(),
+            CryptoPrice::new(data.link_price_usd, data.link_change_24h),
+        );
+        prices.insert(
+            "BNB".to_string(),
+            CryptoPrice::new(data.bnb_price_usd, data.bnb_change_24h),
+        );
         prices
     }
 
