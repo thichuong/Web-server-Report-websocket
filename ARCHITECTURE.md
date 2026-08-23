@@ -11,7 +11,7 @@ The application follows a modular architecture divided into the following key la
 1. **`api`**: Defines the HTTP and WebSocket endpoints using the `axum` framework. It manages routing (e.g., `/ws`, `/health`) and holds the shared application state (`AppState`).
 2. **`services`**: Contains the core business logic of the application:
    - **Leader Election (`LeaderElectionService`)**: Utilizes Redis to coordinate multiple instances, ensuring only one designated "leader" fetches data from external APIs.
-   - **Market Data (`ExternalApisIsland`)**: Interacts with third-party APIs (TAAPI, CoinMarketCap, Finnhub). It is responsible for orchestrating the fetching of market data.
+   - **Market Data (`ExternalApisIsland`)**: Streams real-time price data directly from Binance WebSocket combined streams with automatic failover to Binance US and HTTP REST fallback, while aggregating technical indicators and metrics from TAAPI, CoinGecko, and CoinMarketCap.
    - **Broadcaster (`WebSocketServiceIsland`)**: Manages active WebSocket connections and broadcasts the formatted market data updates to all connected clients.
 3. **`infrastructure`**: Provides low-level technical capabilities such as caching. It integrates the `multi-tier-cache` library (in-memory L1 cache and Redis L2 cache) to optimize data retrieval.
 4. **`dto`**: Defines the Data Transfer Objects used for serialization and communication between the system's components and the varied external clients.

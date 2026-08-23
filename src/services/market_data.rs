@@ -10,6 +10,7 @@
 //! Cache logic handled by Layer 1, this layer focuses on pure API business logic.
 
 pub mod api_aggregator;
+pub mod binance_ws;
 pub mod circuit_breaker;
 pub mod market_data_api;
 
@@ -19,6 +20,7 @@ use tracing::info;
 
 use crate::dto::websocket::DashboardData;
 pub use api_aggregator::ApiAggregator;
+pub use binance_ws::BinanceWsClient;
 pub use market_data_api::MarketDataApi;
 
 /// External APIs Island - Main entry point for Layer 2
@@ -37,7 +39,6 @@ impl ExternalApisIsland {
     pub async fn with_cache_and_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
-        finnhub_api_key: Option<String>,
         cache_system: Option<Arc<crate::infrastructure::cache::CacheSystem>>,
     ) -> Result<Self> {
         info!("Initializing External APIs Island");
@@ -47,7 +48,6 @@ impl ExternalApisIsland {
             MarketDataApi::with_all_keys(
                 taapi_secret.clone(),
                 cmc_api_key.clone(),
-                finnhub_api_key.clone(),
             )
             .await?,
         );
@@ -58,14 +58,13 @@ impl ExternalApisIsland {
                 ApiAggregator::with_cache_and_all_keys(
                     taapi_secret,
                     cmc_api_key,
-                    finnhub_api_key,
                     cache,
                 )
                 .await?,
             )
         } else {
             Arc::new(
-                ApiAggregator::with_all_keys(taapi_secret, cmc_api_key, finnhub_api_key).await?,
+                ApiAggregator::with_all_keys(taapi_secret, cmc_api_key).await?,
             )
         };
 

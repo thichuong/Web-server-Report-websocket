@@ -4,7 +4,7 @@
 //! multiple API calls concurrently and handles error processing.
 
 use super::aggregator_core::ApiAggregator;
-use crate::dto::websocket::{CryptoPrice, DashboardData, UsStockIndices};
+use crate::dto::websocket::{CryptoPrice, DashboardData};
 use anyhow::Result;
 use std::sync::atomic::Ordering;
 use tokio::time::{Duration, timeout};
@@ -38,14 +38,12 @@ impl ApiAggregator {
         let global_future = timeout(Duration::from_secs(8), self.fetch_global_with_cache());
         let fng_future = timeout(Duration::from_secs(8), self.fetch_fng_with_cache());
         let btc_rsi_14_future = timeout(Duration::from_secs(8), self.fetch_btc_rsi_14_with_cache());
-        let us_indices_future = timeout(Duration::from_secs(8), self.fetch_us_indices_with_cache());
 
-        let (multi_crypto_result, global_result, fng_result, btc_rsi_14_result, us_indices_result) = tokio::join!(
+        let (multi_crypto_result, global_result, fng_result, btc_rsi_14_result) = tokio::join!(
             multi_crypto_future,
             global_future,
             fng_future,
-            btc_rsi_14_future,
-            us_indices_future
+            btc_rsi_14_future
         );
 
         let mut partial_failure = false;
@@ -132,29 +130,6 @@ impl ApiAggregator {
             50.0
         };
 
-        // Process US Stock Indices data - Parse strongly-typed structure
-        // Fixed: Safe indexing with .get()
-        let us_stock_indices = if let Ok(Ok(indices_data)) = us_indices_result {
-            // Try to parse the nested "indices" field into UsStockIndices
-            if let Some(indices_value) = indices_data.get("indices") {
-                match serde_json::from_value::<UsStockIndices>(indices_value.clone()) {
-                    Ok(parsed) => parsed,
-                    Err(e) => {
-                        warn!("Failed to parse US stock indices: {}. Using empty data.", e);
-                        partial_failure = true;
-                        UsStockIndices::default()
-                    }
-                }
-            } else {
-                warn!("Missing 'indices' field in response. Using empty data.");
-                partial_failure = true;
-                UsStockIndices::default()
-            }
-        } else {
-            partial_failure = true;
-            UsStockIndices::default()
-        };
-
         let duration = start_time.elapsed();
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -196,7 +171,6 @@ impl ApiAggregator {
             volume_24h_usd: volume_24h,
             market_cap_change_percentage_24h_usd: market_cap_change,
             fng_value,
-            us_stock_indices,
             fetch_duration_ms: duration.as_millis() as u64,
             partial_failure,
             last_updated: now.clone(),

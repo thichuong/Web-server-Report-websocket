@@ -33,7 +33,6 @@ fn test_dashboard_data_structure() {
         volume_24h_usd: 100_000_000_000.0,
         market_cap_change_percentage_24h_usd: 2.0,
         fng_value: 75,
-        us_stock_indices: Default::default(),
         fetch_duration_ms: 200,
         partial_failure: false,
         last_updated: "2024-01-01T00:00:00Z".to_string(),

@@ -62,7 +62,6 @@ async fn main() -> Result<(), anyhow::Error> {
         services::market_data::ExternalApisIsland::with_cache_and_all_keys(
             app_config.taapi_secret.clone(),
             app_config.cmc_api_key.clone(),
-            app_config.finnhub_api_key.clone(),
             Some(cache_system.clone()),
         )
         .await?,

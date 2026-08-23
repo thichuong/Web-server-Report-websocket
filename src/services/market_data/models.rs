@@ -69,26 +69,3 @@ pub(crate) struct CmcGlobalQuote {
     pub btc_dominance: f64,
     pub eth_dominance: f64,
 }
-
-// Finnhub response structures
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub(crate) struct FinnhubQuoteResponse {
-    #[serde(rename = "c")]
-    pub current_price: f64,
-    #[serde(rename = "d")]
-    pub change: f64,
-    #[serde(rename = "dp")]
-    pub percent_change: f64,
-    #[allow(dead_code)]
-    #[serde(rename = "h")]
-    pub high: f64,
-    #[allow(dead_code)]
-    #[serde(rename = "l")]
-    pub low: f64,
-    #[allow(dead_code)]
-    #[serde(rename = "o")]
-    pub open: f64,
-    #[allow(dead_code)]
-    #[serde(rename = "pc")]
-    pub previous_close: f64,
-}

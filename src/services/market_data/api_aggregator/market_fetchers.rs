@@ -1,7 +1,7 @@
 //! Market Data Fetchers Component
 //!
 //! This module contains all the market data fetching methods with caching
-//! for global market data, Fear & Greed Index, RSI, and US stock indices.
+//! for global market data, Fear & Greed Index, and RSI.
 
 use super::aggregator_core::ApiAggregator;
 use anyhow::Result;
@@ -104,36 +104,6 @@ impl ApiAggregator {
             self.market_api.fetch_btc_rsi_14().await
         }
     }
-
-    /// Fetch US Stock Indices with type-safe automatic caching
-    ///
-    /// ✨ NEW: Uses `get_or_compute_typed()` for automatic caching
-    ///
-    /// # Errors
-    /// Returns error if API fetch fails or cache operations encounter issues
-    pub async fn fetch_us_indices_with_cache(&self) -> Result<serde_json::Value> {
-        if let Some(ref cache) = self.cache_system {
-            let market_api = Arc::clone(&self.market_api);
-
-            let result = cache
-                .cache_manager
-                .get_or_compute_typed(
-                    "us_indices_finnhub_5m",
-                    crate::infrastructure::cache::CacheStrategy::ShortTerm, // 5 minutes
-                    || async move {
-                        debug!("Fetching US Stock Indices from API");
-                        market_api
-                            .fetch_us_stock_indices()
-                            .await
-                            .map_err(|e| multi_tier_cache::CacheError::BackendError(e.to_string()))
-                    },
-                )
-                .await;
-            result.map_err(anyhow::Error::from)
-        } else {
-            // No cache - direct API call
-            warn!("No cache system - calling API directly for US indices");
-            self.market_api.fetch_us_stock_indices().await
-        }
-    }
 }
+
+

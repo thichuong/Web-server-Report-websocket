@@ -7,7 +7,6 @@ pub struct AppConfig {
     pub fetch_interval: u64,
     pub taapi_secret: String,
     pub cmc_api_key: Option<String>,
-    pub finnhub_api_key: Option<String>,
 }
 
 impl AppConfig {
@@ -28,7 +27,6 @@ impl AppConfig {
                 .unwrap_or(5),
             taapi_secret: env::var("TAAPI_SECRET").unwrap_or_else(|_| "default_secret".to_string()),
             cmc_api_key: env::var("CMC_API_KEY").ok(),
-            finnhub_api_key: env::var("FINNHUB_API_KEY").ok(),
         }
     }
 }

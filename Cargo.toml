@@ -35,6 +35,7 @@ overflow-checks = false   # Disable overflow checks in release
 # Web framework and WebSocket
 axum = { version = "0.8", features = ["ws"] }
 tokio = { version = "1.52", features = ["full", "sync"] }
+tokio-tungstenite = { version = "0.29", features = ["rustls-tls-webpki-roots", "connect"] }
 tower-http = { version = "0.6", features = ["cors"] }
 
 # Serialization

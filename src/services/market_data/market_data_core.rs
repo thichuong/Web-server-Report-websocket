@@ -1,7 +1,4 @@
-// Market Data API Core Component
-//
-// This module contains the core MarketDataApi struct and its constructor methods.
-
+use super::binance_ws::BinanceWsClient;
 use crate::performance::OPTIMIZED_HTTP_CLIENT;
 use anyhow::Result;
 use reqwest::Client;
@@ -11,13 +8,13 @@ use tracing::{error, info, warn};
 
 /// Market Data API
 ///
-/// Handles direct API calls to cryptocurrency data sources and stock market indices.
+/// Handles direct API calls and WebSocket connections to cryptocurrency data sources.
 pub struct MarketDataApi {
     pub client: Client,
     pub taapi_secret: String,
     pub cmc_api_key: Option<String>,
-    pub finnhub_api_key: Option<String>,
     pub binance_url: String,
+    pub binance_ws: Option<Arc<BinanceWsClient>>,
     // Statistics tracking
     pub api_calls_count: Arc<AtomicUsize>,
     pub successful_calls: Arc<AtomicUsize>,
@@ -25,7 +22,6 @@ pub struct MarketDataApi {
     pub last_call_timestamp: Arc<AtomicU64>,
     pub last_cmc_call: Arc<AtomicU64>,
     pub last_rsi_call: Arc<AtomicU64>,
-    pub last_finnhub_call: Arc<AtomicU64>,
     pub last_coingecko_call: Arc<AtomicU64>,
 }
 
@@ -44,7 +40,7 @@ impl MarketDataApi {
     /// # Errors
     /// Returns error if HTTP client initialization fails
     pub async fn with_cmc_key(taapi_secret: String, cmc_api_key: Option<String>) -> Result<Self> {
-        Self::with_all_keys(taapi_secret, cmc_api_key, None).await
+        Self::with_all_keys(taapi_secret, cmc_api_key).await
     }
 
     /// Create a new `MarketDataApi` with all API keys
@@ -55,7 +51,6 @@ impl MarketDataApi {
     pub async fn with_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
-        finnhub_api_key: Option<String>,
     ) -> Result<Self> {
         info!("Initializing Market Data API");
 
@@ -65,19 +60,22 @@ impl MarketDataApi {
         // Check Binance connectivity to decide which URL to use
         let binance_url = Self::check_binance_connectivity(&client).await;
 
+        // Initialize Binance WebSocket client
+        info!("🔌 Initializing Binance WebSocket client for real-time streaming...");
+        let binance_ws = Some(BinanceWsClient::new());
+
         Ok(Self {
             client,
             taapi_secret,
             cmc_api_key,
-            finnhub_api_key,
             binance_url,
+            binance_ws,
             api_calls_count: Arc::new(AtomicUsize::new(0)),
             successful_calls: Arc::new(AtomicUsize::new(0)),
             failed_calls: Arc::new(AtomicUsize::new(0)),
             last_call_timestamp: Arc::new(AtomicU64::new(0)),
             last_cmc_call: Arc::new(AtomicU64::new(0)),
             last_rsi_call: Arc::new(AtomicU64::new(0)),
-            last_finnhub_call: Arc::new(AtomicU64::new(0)),
             last_coingecko_call: Arc::new(AtomicU64::new(0)),
         })
     }

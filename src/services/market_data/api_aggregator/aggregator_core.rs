@@ -40,7 +40,7 @@ impl ApiAggregator {
     /// # Errors
     /// Returns error if API initialization or HTTP client setup fails
     pub async fn with_cmc_key(taapi_secret: String, cmc_api_key: Option<String>) -> Result<Self> {
-        Self::with_all_keys(taapi_secret, cmc_api_key, None).await
+        Self::with_all_keys(taapi_secret, cmc_api_key).await
     }
 
     /// Create a new `ApiAggregator` with all API keys
@@ -50,7 +50,6 @@ impl ApiAggregator {
     pub async fn with_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
-        finnhub_api_key: Option<String>,
     ) -> Result<Self> {
         info!("Initializing API Aggregator");
 
@@ -59,7 +58,7 @@ impl ApiAggregator {
 
         // Create market API instance with async initialization
         let market_api = Arc::new(
-            MarketDataApi::with_all_keys(taapi_secret, cmc_api_key, finnhub_api_key).await?,
+            MarketDataApi::with_all_keys(taapi_secret, cmc_api_key).await?,
         );
 
         Ok(Self {
@@ -90,7 +89,7 @@ impl ApiAggregator {
         cmc_api_key: Option<String>,
         cache_system: Arc<CacheSystem>,
     ) -> Result<Self> {
-        Self::with_cache_and_all_keys(taapi_secret, cmc_api_key, None, cache_system).await
+        Self::with_cache_and_all_keys(taapi_secret, cmc_api_key, cache_system).await
     }
 
     /// Create `ApiAggregator` with cache system and all API keys
@@ -100,11 +99,10 @@ impl ApiAggregator {
     pub async fn with_cache_and_all_keys(
         taapi_secret: String,
         cmc_api_key: Option<String>,
-        finnhub_api_key: Option<String>,
         cache_system: Arc<CacheSystem>,
     ) -> Result<Self> {
         let mut aggregator =
-            Self::with_all_keys(taapi_secret, cmc_api_key, finnhub_api_key).await?;
+            Self::with_all_keys(taapi_secret, cmc_api_key).await?;
         aggregator.cache_system = Some(cache_system);
         Ok(aggregator)
     }

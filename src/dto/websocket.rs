@@ -48,48 +48,7 @@ impl Default for CryptoPrice {
     }
 }
 
-// ============================================================================
-// US Stock Indices (Strongly-typed structure)
-// ============================================================================
 
-/// US Stock market indices data
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct UsStockIndices {
-    /// S&P 500 index data (SPY)
-    #[serde(rename = "SPY", skip_serializing_if = "Option::is_none")]
-    pub spy: Option<StockIndex>,
-
-    /// NASDAQ 100 index data (QQQM)
-    #[serde(rename = "QQQM", skip_serializing_if = "Option::is_none")]
-    pub qqqm: Option<StockIndex>,
-
-    /// Dow Jones Industrial Average data (DIA)
-    #[serde(rename = "DIA", skip_serializing_if = "Option::is_none")]
-    pub dia: Option<StockIndex>,
-}
-
-/// Individual stock index data
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct StockIndex {
-    /// Current index value
-    pub price: f64,
-
-    /// Absolute change
-    pub change: f64,
-
-    /// Percentage change
-    pub change_percent: f64,
-
-    /// Status of the data (e.g., "success", "failed")
-    #[serde(default = "default_status")]
-    pub status: String,
-}
-
-fn default_status() -> String {
-    "unknown".to_string()
-}
 
 // ============================================================================
 // Server Messages (Server → Client)
@@ -237,10 +196,6 @@ pub struct DashboardData {
     // Indicators
     #[serde(alias = "fng_value")]
     pub fng_value: u32,
-
-    // US Stock Indices (nested object)
-    #[serde(alias = "us_stock_indices", default)]
-    pub us_stock_indices: UsStockIndices,
 
     // Metadata
     #[serde(alias = "fetch_duration_ms")]
@@ -422,8 +377,7 @@ mod tests {
             timestamp: 1_234_567_890,
         });
 
-        #[allow(clippy::unwrap_used)]
-        let json = msg.to_json_string().unwrap();
+        let json = msg.to_json_string().expect("Serialization should succeed");
         assert!(json.contains("change24h")); // camelCase field name
         assert!(json.contains("50000"));
     }
@@ -452,7 +406,6 @@ mod tests {
             volume_24h_usd: 1_000_000_000.0,
             market_cap_change_percentage_24h_usd: 1.2,
             fng_value: 50,
-            us_stock_indices: UsStockIndices::default(),
             fetch_duration_ms: 100,
             partial_failure: false,
             last_updated: "2023-01-01T00:00:00Z".to_string(),
@@ -463,10 +416,6 @@ mod tests {
             .to_json_string()
             .expect("Serialization should succeed");
 
-        // Check for camelCase keys which are default for ServerMessage but DashboardData uses snake_case in Struct definition
-        // Wait, DashboardData has #[serde(rename_all = "snake_case")] but individual fields have aliases.
-        // Let's check what it actually produces.
-        // It produces snake_case because of `#[serde(rename_all = "snake_case")]`.
         assert!(json.contains("btc_price_usd"));
         assert!(json.contains("50000"));
     }
@@ -495,7 +444,6 @@ mod tests {
             volume_24h_usd: 1_000_000_000.0,
             market_cap_change_percentage_24h_usd: 1.2,
             fng_value: 50,
-            us_stock_indices: UsStockIndices::default(),
             fetch_duration_ms: 100,
             partial_failure: false,
             last_updated: "2023-01-01T00:00:00Z".to_string(),
@@ -506,9 +454,6 @@ mod tests {
         let msg = ServerMessage::DashboardUpdate(Box::new(payload));
         let json = msg.to_json_string().expect("Serialization should succeed");
 
-        // ServerMessage is camelCase, so "dashboardUpdate"
-        // But the payload struct is also camelCase
-        // And DashboardData inside is snake_case
         assert!(json.contains("DashboardUpdate"));
         assert!(json.contains("btc_price_usd"));
         assert!(json.contains("test_source"));

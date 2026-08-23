@@ -9,6 +9,10 @@
 pub const BINANCE_MULTI_PRICE_URL: &str = "https://api.binance.com/api/v3/ticker/24hr?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22LINKUSDT%22,%22BNBUSDT%22%5D"; // 10 sec cache (RealTime)
 pub const BINANCE_US_MULTI_PRICE_URL: &str = "https://api.binance.us/api/v3/ticker/24hr?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22LINKUSDT%22,%22BNBUSDT%22%5D"; // 10 sec cache (RealTime)
 
+// Binance WebSocket Streams (Real-time Primary)
+pub const BINANCE_WS_STREAM_URL: &str = "wss://stream.binance.com:9443/stream?streams=btcusdt@ticker/ethusdt@ticker/solusdt@ticker/xrpusdt@ticker/adausdt@ticker/linkusdt@ticker/bnbusdt@ticker";
+pub const BINANCE_US_WS_STREAM_URL: &str = "wss://stream.binance.us:9443/stream?streams=btcusdt@ticker/ethusdt@ticker/solusdt@ticker/xrpusdt@ticker/adausdt@ticker/linkusdt@ticker/bnbusdt@ticker";
+
 // CoinGecko APIs (Fallback)
 pub const BASE_GLOBAL_URL: &str = "https://api.coingecko.com/api/v3/global"; // 30 sec cache
 

@@ -27,7 +27,6 @@ External APIs → Cache → Redis Streams → WebSocket Broadcast
 - API Keys:
   - TAAPI_SECRET (required)
   - CMC_API_KEY (optional)
-  - FINNHUB_API_KEY (optional)
 
 ## Dependencies
 
@@ -52,7 +51,6 @@ git clone <multi-tier-cache-repo>
    ```bash
    TAAPI_SECRET=your_taapi_secret
    CMC_API_KEY=your_cmc_key
-   FINNHUB_API_KEY=your_finnhub_key
    ```
 
 3. **Start Redis:**
@@ -75,7 +73,6 @@ git clone <multi-tier-cache-repo>
 | `FETCH_INTERVAL_SECONDS` | Data fetch interval | `10` | No |
 | `TAAPI_SECRET` | TAAPI.io API key | - | Yes |
 | `CMC_API_KEY` | CoinMarketCap key | - | No |
-| `FINNHUB_API_KEY` | Finnhub key | - | No |
 
 ## Endpoints
 

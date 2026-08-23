@@ -2,26 +2,43 @@
 //
 // This module contains all cryptocurrency price fetching methods with fallback logic.
 
+use tracing::debug;
+
 impl MarketDataApi {
-    /// Fetch multiple crypto prices in a single Binance API call (OPTIMIZED)
+    /// Fetch multiple crypto prices (BTC, ETH, SOL, XRP, ADA, LINK, BNB)
+    /// Primary: Real-time Binance WebSocket stream cache (< 30s fresh)
+    /// Fallback: Binance HTTP REST multi-ticker API
     ///
-    /// Fetches BTC, ETH, SOL, XRP, ADA, LINK, BNB prices in one request
     /// Returns `HashMap`<Symbol, (`price_usd`, `change_24h`)>
     ///
     /// # Errors
-    /// Returns error if Binance API call fails, response parsing fails, or validation fails
+    /// Returns error if WebSocket cache is stale/unavailable and Binance HTTP fallback also fails
     pub async fn fetch_multi_crypto_prices(&self) -> Result<HashMap<String, (f64, f64)>> {
-        self.record_api_call();
+        // 1. Try real-time Binance WebSocket stream cache
+        if let Some(binance_ws) = &self.binance_ws {
+            if let Some(ws_prices) = binance_ws.get_multi_crypto_prices() {
+                self.record_api_call();
+                self.record_success();
+                debug!("Obtained fresh real-time crypto prices from Binance WebSocket cache");
+                return Ok(ws_prices);
+            }
+            warn!("Binance WebSocket prices not available or stale; falling back to Binance HTTP REST API");
+        }
 
-        // Try Binance multi-ticker endpoint
+        // 2. Fallback: Binance HTTP REST API
+        self.record_api_call();
         match self.fetch_multi_crypto_prices_binance().await {
             Ok(data) => {
                 self.record_success();
+                // Seed WebSocket store with fresh HTTP data
+                if let Some(binance_ws) = &self.binance_ws {
+                    binance_ws.seed_prices(&data);
+                }
                 Ok(data)
             }
             Err(e) => {
                 self.record_failure();
-                error!(error = %e, "Binance multi-ticker failed");
+                error!(error = %e, "Binance HTTP multi-ticker fallback failed");
                 Err(e)
             }
         }
