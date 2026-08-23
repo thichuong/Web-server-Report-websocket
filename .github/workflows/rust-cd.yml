@@ -56,7 +56,7 @@ jobs:
           --zone=${{ secrets.GCP_ZONE }} \
           --tunnel-through-iap \
           --strict-host-key-checking=no \
-          --command="cd ~/Web-server-Report-websocket && git pull origin main; pkill -f '[w]eb-server-report-websocket' || true; mkdir -p ~/Web-server-Report-websocket/target/release"
+          --command="cd ~/Web-server-Report-websocket && git pull origin main && git reset --hard origin/main; pkill -f '[w]eb-server-report-websocket' || true; mkdir -p ~/Web-server-Report-websocket/target/release"
 
     - name: Deploy to Google VM via IAP
       run: |
