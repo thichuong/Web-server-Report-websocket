@@ -367,7 +367,7 @@ impl MarketDataService {
         }
     }
 
-    /// Fetches BTC 14-day RSI with 3-hour caching, falling back to Redis stream on error.
+    /// Fetches BTC 14-day RSI with 1-hour caching (MediumTerm), falling back to Redis stream on error.
     async fn fetch_rsi(&self, _force_refresh: bool) -> Result<f64> {
         let http_client = Arc::clone(&self.http_client);
         let secret = self.taapi_secret.clone();
@@ -377,8 +377,8 @@ impl MarketDataService {
             .cache
             .cache_manager()
             .get_or_compute_typed(
-                "btc_rsi_14_taapi_3h",
-                CacheStrategy::LongTerm,
+                "btc_rsi_14_taapi_1h",
+                CacheStrategy::MediumTerm,
                 || async move {
                     if is_secret_missing {
                         return Err(multi_tier_cache::CacheError::BackendError(
@@ -398,7 +398,7 @@ impl MarketDataService {
             _ => {
                 // If get_or_compute_typed failed or returned invalid value, check raw Redis cache
                 if let Some(cached_rsi) = self.get_cached_rsi().await {
-                    debug!("Obtained BTC RSI-14 from Redis cache key 'btc_rsi_14_taapi_3h': {cached_rsi}");
+                    debug!("Obtained BTC RSI-14 from Redis cache key 'btc_rsi_14_taapi_1h': {cached_rsi}");
                     return Ok(cached_rsi);
                 }
 
@@ -418,15 +418,15 @@ impl MarketDataService {
         }
     }
 
-    /// Helper: Read cached RSI from Redis key `btc_rsi_14_taapi_3h` if present in any format.
+    /// Helper: Read cached RSI from Redis key `btc_rsi_14_taapi_1h` if present in any format.
     async fn get_cached_rsi(&self) -> Option<f64> {
-        if let Ok(Some(val)) = self.cache.cache_manager().get_typed::<f64>("btc_rsi_14_taapi_3h").await
+        if let Ok(Some(val)) = self.cache.cache_manager().get_typed::<f64>("btc_rsi_14_taapi_1h").await
             && val > 0.0
         {
             return Some(val);
         }
 
-        if let Ok(Some(bytes)) = self.cache.cache_manager().get("btc_rsi_14_taapi_3h").await
+        if let Ok(Some(bytes)) = self.cache.cache_manager().get("btc_rsi_14_taapi_1h").await
             && let Ok(s) = std::str::from_utf8(&bytes)
         {
             let trimmed = s.trim().trim_matches('"');
