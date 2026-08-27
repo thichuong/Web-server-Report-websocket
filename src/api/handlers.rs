@@ -36,6 +36,16 @@ async fn handle_websocket(mut socket: WebSocket, state: Arc<AppState>) {
         .is_err()
     {
         info!("Failed to send initial message");
+        state.active_ws_connections.fetch_sub(1, Ordering::SeqCst);
+        return;
+    }
+
+    // Send latest market data immediately upon connection
+    if let Some(initial_msg) = state.get_latest_market_data_message().await
+        && socket.send(Message::Text(initial_msg.into())).await.is_err()
+    {
+        info!("Failed to send initial market data payload");
+        state.active_ws_connections.fetch_sub(1, Ordering::SeqCst);
         return;
     }
 
@@ -52,8 +62,29 @@ async fn handle_websocket(mut socket: WebSocket, state: Arc<AppState>) {
                 }
             }
             Some(msg) = socket.recv() => {
-                if msg.is_err() {
-                    break;
+                match msg {
+                    Ok(Message::Text(text)) => {
+                        let text_trimmed = text.trim();
+                        if text_trimmed == "ping" {
+                            if socket.send(Message::Text("pong".to_string().into())).await.is_err() {
+                                break;
+                            }
+                        } else if (text_trimmed == "request_update"
+                            || text_trimmed.contains("request_dashboard_data")
+                            || text_trimmed.contains("request_market_data"))
+                            && let Some(data_msg) = state.get_latest_market_data_message().await
+                            && socket.send(Message::Text(data_msg.into())).await.is_err()
+                        {
+                            break;
+                        }
+                    }
+                    Ok(Message::Ping(bytes)) => {
+                        if socket.send(Message::Pong(bytes)).await.is_err() {
+                            break;
+                        }
+                    }
+                    Ok(Message::Close(_)) | Err(_) => break,
+                    _ => {}
                 }
             }
         }

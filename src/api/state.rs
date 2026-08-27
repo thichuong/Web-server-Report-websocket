@@ -74,6 +74,31 @@ impl AppState {
         Ok(())
     }
 
+    /// Gets the latest serialized dashboard update message, either from cache or by fetching freshly.
+    pub async fn get_latest_market_data_message(&self) -> Option<String> {
+        // 1. Try L1/L2 Cache
+        if let Ok(Some(cached_bytes)) = self.cache.cache_manager().get("latest_market_data").await
+            && let Ok(data) = serde_json::from_slice::<DashboardData>(&cached_bytes)
+        {
+            let payload = crate::dto::websocket::DashboardUpdatePayload::new(data, "initial_data");
+            let message = crate::dto::websocket::ServerMessage::DashboardUpdate(Box::new(payload));
+            if let Ok(msg_str) = message.to_json_string() {
+                return Some(msg_str);
+            }
+        }
+
+        // 2. Fallback: fetch from market_data service
+        if let Ok(data) = self.market_data.fetch_dashboard_data(false).await {
+            let payload = crate::dto::websocket::DashboardUpdatePayload::new(data, "initial_data");
+            let message = crate::dto::websocket::ServerMessage::DashboardUpdate(Box::new(payload));
+            if let Ok(msg_str) = message.to_json_string() {
+                return Some(msg_str);
+            }
+        }
+
+        None
+    }
+
     pub async fn health_check_detailed(&self) -> (bool, serde_json::Value) {
         let cache_healthy = self.cache.health_check().await;
         let market_data_healthy = self.market_data.health_check();
