@@ -79,6 +79,7 @@ async fn main() -> Result<(), anyhow::Error> {
         leader_election: leader_election.clone(),
         is_leader,
         active_ws_connections: Arc::new(AtomicUsize::new(0)),
+        last_macro_signature: Arc::new(parking_lot::Mutex::new(None)),
     });
 
     let (is_healthy, health_details) = app_state.health_check_detailed().await;
@@ -137,28 +138,17 @@ async fn spawn_market_data_fetcher(state: Arc<AppState>, fetch_interval: u64) {
         let is_leader = state.is_leader.load(Ordering::Relaxed);
 
         if is_leader {
-            info!("🎖️ [LEADER] Fetching market data from APIs...");
+            info!("🎖️ [LEADER] Fetching market data and publishing to Redis Stream...");
 
             match state.fetch_and_publish_market_data(true).await {
                 Ok(data) => {
-                    info!("✅ [LEADER] Market data fetched successfully from APIs");
-                    match state.broadcast_to_websocket_clients(data) {
-                        Err(e) => {
-                            error!(
-                                "❌ [LEADER] Failed to broadcast to WebSocket clients: {}",
-                                e
-                            );
-                        }
-                        _ => {
-                            info!(
-                                "📡 [LEADER] Broadcasted to {} WebSocket clients",
-                                state.active_connections()
-                            );
-                        }
-                    }
+                    info!("✅ [LEADER] Market data saved to Redis Stream and cache");
+                    // Only broadcast to connected WebSocket clients if macro metrics have actually changed
+                    // (e.g. Market Cap, Volume, F&G, Dominance, RSI), filtering out high-frequency Binance price ticks
+                    state.broadcast_if_macro_data_changed(&data);
                 }
                 Err(e) => {
-                    error!("❌ [LEADER] Failed to fetch market data: {}", e);
+                    error!("❌ [LEADER] Failed to fetch and publish market data: {}", e);
                 }
             }
         } else {
@@ -167,22 +157,9 @@ async fn spawn_market_data_fetcher(state: Arc<AppState>, fetch_interval: u64) {
             match state.cache.cache_manager().get("latest_market_data").await {
                 Ok(Some(data)) => {
                     info!("✅ [FOLLOWER] Market data loaded from cache");
-                    match serde_json::from_slice(&data) {
+                    match serde_json::from_slice::<crate::dto::websocket::DashboardData>(&data) {
                         Ok(dashboard_data) => {
-                            match state.broadcast_to_websocket_clients(dashboard_data) {
-                                Err(e) => {
-                                    error!(
-                                        "❌ [FOLLOWER] Failed to broadcast to WebSocket clients: {}",
-                                        e
-                                    );
-                                }
-                                _ => {
-                                    info!(
-                                        "📡 [FOLLOWER] Broadcasted cached data to {} WebSocket clients",
-                                        state.active_connections()
-                                    );
-                                }
-                            }
+                            state.broadcast_if_macro_data_changed(&dashboard_data);
                         }
                         Err(e) => {
                             error!("❌ [FOLLOWER] Failed to deserialize cached data: {}", e);

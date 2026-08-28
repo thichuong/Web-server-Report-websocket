@@ -1,3 +1,4 @@
+use parking_lot::Mutex;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 
@@ -14,6 +15,7 @@ pub struct AppState {
     pub leader_election: Arc<LeaderElectionService>,
     pub is_leader: Arc<AtomicBool>,
     pub active_ws_connections: Arc<AtomicUsize>,
+    pub last_macro_signature: Arc<Mutex<Option<String>>>,
 }
 
 impl AppState {
@@ -59,6 +61,42 @@ impl AppState {
             .publish_to_stream("market_data_stream", fields, Some(1000))
             .await?;
         Ok(())
+    }
+
+    /// Broadcasts updated dashboard data to connected WebSocket clients ONLY if macro indicators have changed.
+    /// Crypto price changes from Binance are filtered out because clients connect directly to Binance WebSocket.
+    pub fn broadcast_if_macro_data_changed(&self, data: &DashboardData) -> bool {
+        let current_signature = format!(
+            "{}:{}:{}:{}:{:.1}:{:.1}",
+            data.market_cap_usd,
+            data.volume_24h_usd,
+            data.fng_value,
+            data.btc_rsi_14,
+            data.btc_market_cap_percentage,
+            data.eth_market_cap_percentage
+        );
+
+        let mut last_sig = self.last_macro_signature.lock();
+        if let Some(ref prev_sig) = *last_sig
+            && prev_sig == &current_signature
+        {
+            tracing::debug!("⏭️ Macro indicators unchanged, skipping client WebSocket broadcast (Binance prices stream directly on frontend)");
+            return false;
+        }
+
+        *last_sig = Some(current_signature);
+        drop(last_sig);
+
+        if let Err(e) = self.broadcast_to_websocket_clients(data.clone()) {
+            tracing::error!("❌ Failed to broadcast to WebSocket clients: {}", e);
+            false
+        } else {
+            tracing::info!(
+                "📡 Broadcasted updated macro metrics to {} WebSocket clients",
+                self.active_connections()
+            );
+            true
+        }
     }
 
     /// Broadcasts updated dashboard data to connected WebSocket clients.
