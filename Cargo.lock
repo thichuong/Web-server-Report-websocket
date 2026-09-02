@@ -1250,9 +1250,9 @@ dependencies = [
 
 [[package]]
 name = "multi-tier-cache"
-version = "0.6.7"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6abefd4bf2ab88423426510c40172a7e1c65e1f9975e84358e86298bbd363ed1"
+checksum = "579fe3af80c326f3a23db043ade2c963e85971acbf6ceb1af6a236c2cac4a0f3"
 dependencies = [
  "bytes",
  "dashmap",
